@@ -18,7 +18,7 @@ PLAYER_SPEED = 5
 PLAYER_HP = 100
 
 # Bullet Settings
-BULLET_SPEED = 10
+BULLET_SPEED = 100
 
 # Zombie Settings
 ZOMBIE_NORMAL_HP = 30
