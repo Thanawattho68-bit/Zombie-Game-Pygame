@@ -1,42 +1,56 @@
 import pygame as pg
 import math
-from abc import ABC, abstractmethod
-from settings import *
+import settings
+from base_bullet import NineMM, FiveFiveSix
 
-#composition ให้ Player เก็บ weapon
-class BaseWeapon(ABC, pg.sprite.Sprite):
-    def __init__(self, x, y, speed, weapon):
+class BaseWeapon(pg.sprite.Sprite):
+    def __init__(self, x, y, weapon_type, bullet_type, magazine_size, reload_time, fire_rate):
         super().__init__()
         try:
-            self.original_image = pg.image.load(weapon).convert_alpha()
-        except pg.error as e:
-            print(f"Error loading image: {e}")
+            self.original_image = pg.image.load(weapon_type).convert_alpha()
+        except:
             self.original_image = pg.Surface((10, 10))
             self.original_image.fill(DARK_GRAY)
-
         self.image = self.original_image.copy()
         self.rect = self.image.get_rect(center=(x, y))
-        self.speed = speed
+        self.bullet_type = bullet_type
+        self.magazine_size = magazine_size
+        self.current_ammo = magazine_size
+        self.reload_time = reload_time
+        self.fire_rate = fire_rate * 1000
+        self.last_shot_time = 0
 
+    def update(self, player_pos):
+        self.rect.center = player_pos
+        self.rotate_to_mouse()
 
     def rotate_to_mouse(self):
         mx, my = pg.mouse.get_pos()
-        #คำนวณความต่างของพิกัด
-        dx = mx - self.rect.centerx
-        dy = my - self.rect.centery
-        #คำนวณมุม (ในทางคณิตศาสตร์แกน y ของ Pygame จะกลับด้าน เลยต้องติดลบที่ dy)
+        dx, dy = mx - self.rect.centerx, my - self.rect.centery
         self.angle = math.degrees(math.atan2(-dy, dx))
-        
-        #หมุนภาพต้นฉบับตามมุมที่ได้
         self.image = pg.transform.rotate(self.original_image, self.angle)
-        #อัปเดตกรอบ (rect) ให้จุดกึ่งกลางอยู่ที่เดิม (เพราะการหมุนทำให้ขนาดสี่เหลี่ยมเปลี่ยน)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def shoot(self):
+        direction = pg.math.Vector2(1, 0).rotate(-self.angle)
+        return self.bullet_type(self.rect.centerx, self.rect.centery, direction)
 
-    @abstractmethod
-    def update(self):
-        pass
+    def pull_trigger(self):
+        now = pg.time.get_ticks() # ต้องดึงเวลาปัจจุบันมาด้วย
+        if self.current_ammo > 0 and now - self.last_shot_time > self.fire_rate:
+            # ต้องเช็คด้วยว่า เวลาผ่านไปนานพอหรือยัง (now - last_shot > delay)
+            self.current_ammo -= 1
+            self.last_shot_time = now
+            return self.shoot()
 
-    @abstractmethod
-    def shoot(self, target):
-        pass
+    def reload(self):
+        if self.current_ammo < self.magazine_size:
+            self.current_ammo = self.magazine_size
+
+class Glock(BaseWeapon):
+    def __init__(self, x, y, weapon_type, bullet_type, magazine_size, reload_time, fire_rate):
+        super().__init__(x, y, "assets/weapon/glock/glock.png", NineMM, 10, 1, 0.1)
+
+class M16(BaseWeapon):
+    def __init__(self, x, y, weapon_type, bullet_type, magazine_size, reload_time, fire_rate)
+        super().__init__(x, y, "assets/weapon/m16/m16.png", FiveFiveSix, 30, 2, 0.1)

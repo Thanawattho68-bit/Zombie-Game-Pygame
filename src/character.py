@@ -1,6 +1,7 @@
 import pygame as pg
 from base_entity import BaseEntity
 from settings import *
+from abc import ABC, abstractmethod
 
 class Player(BaseEntity):
     def __init__(self, x, y, hp, speed, entity):
@@ -23,11 +24,12 @@ class Player(BaseEntity):
         pass
 
 class Zombie(BaseEntity):
-    def __init__(self, x, y, hp, speed, entity):
+    def __init__(self, x, y, hp, speed, entity, attack_damage):
         super().__init__(x, y, hp, speed, entity)
+        self.attack_damage = attack_damage
 
     def spawn(self):
-        pass
+        self.rect.center = (random.randint(0, SCREEN_WIDTH), random.randint(0, SCREEN_HEIGHT))
 
     def update(self, *args, **kwargs):
         # 1. รับค่าตำแหน่งผู้เล่น (เราส่งมาทาง args[0] หรือ kwargs)
@@ -53,4 +55,19 @@ class Zombie(BaseEntity):
                 self.rect.y += direction.y
 
     def attack(self, target):
-        pass
+        if self.rect.colliderect(target.rect):
+            target.take_damage(self.attack_damage)
+        elif target.hp <= 0:
+            target.kill()
+            
+class NormalZombie(Zombie):
+    def __init__(self, x, y):
+        super().__init__(x, y, 30, 2, "assets/character/zombie/zombie_normal/zombie_normal1.png", 10)
+
+class FastZombie(Zombie):
+    def __init__(self, x, y):
+        super().__init__(x, y, 10, 5, "assets/character/zombie/zombie_fast/zombie_fast1.png", 5)
+
+class TankZombie(Zombie):
+    def __init__(self, x, y):
+        super().__init__(x, y, 100, 1, "assets/character/zombie/zombie_tank/zombie_tank1.png", 20)
