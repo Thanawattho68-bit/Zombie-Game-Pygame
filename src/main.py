@@ -2,8 +2,9 @@ import pygame as pg
 import sys
 import random
 from settings import *
-from character import Player, NormalZombie, FastZombie, TankZombie
+from character import Player, ZombieFactory
 from wave_difficulty import Endless
+from base_weapon import Glock, M16
 
 class Game:
     def __init__(self):
@@ -13,46 +14,43 @@ class Game:
         self.clock = pg.time.Clock()
         self.font = pg.font.SysFont(None, 48)
         self.running = True
+        
+        # 1. Dependency Injection & Strategy Pattern
+        self.difficulty_strategy = Endless()
+        
+        # 2. Factory Pattern for Zombies container
+        self.zombie_factory = ZombieFactory(self.difficulty_strategy)
+        
         self.reset_game()
 
     def reset_game(self):
-        # 1. สถานะเกม
         self.game_state = "PLAYING" # PLAYING or GAMEOVER
-        self.difficulty_manager = Endless()
         self.current_wave = 1
-        self.spawn_timer = 0
         self.score = 0
+        self.zombie_attack_delay = 500  # ป้องกันโดนโจมตีรัวๆ ในพริบตา
         
-        # 2. กลุ่ม Sprite
+        # กลุ่ม Sprite
         self.all_sprites = pg.sprite.Group()
         self.zombies = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
         
-        # 3. ตัวละครหลัก
+        # ตัวละครหลัก
         self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, PLAYER_HP, PLAYER_SPEED, "assets/character/player/player.png")
         self.all_sprites.add(self.player)
         self.all_sprites.add(self.player.weapon)
-
-    def spawn_zombie(self):
-        side = random.choice(['top', 'bottom', 'left', 'right'])
-        if side == 'top': x, y = random.randint(0, SCREEN_WIDTH), -50
-        elif side == 'bottom': x, y = random.randint(0, SCREEN_WIDTH), SCREEN_HEIGHT + 50
-        elif side == 'left': x, y = -50, random.randint(0, SCREEN_HEIGHT)
-        else: x, y = SCREEN_WIDTH + 50, random.randint(0, SCREEN_HEIGHT)
-
-        z_type = random.choices(['normal', 'fast', 'tank'], weights=[70, 20, 10])[0]
-        hp, speed, damage = self.difficulty_manager.get_zombie_stats(self.current_wave, z_type)
         
-        if z_type == 'normal': zombie = NormalZombie(x, y)
-        elif z_type == 'fast': zombie = FastZombie(x, y)
-        else: zombie = TankZombie(x, y)
-            
-        zombie.hp = hp
-        zombie.speed = speed
-        zombie.attack_damage = damage
-        
-        self.all_sprites.add(zombie)
-        self.zombies.add(zombie)
+        # Spawn ด่านแรก
+        self.spawn_wave()
+
+    def spawn_wave(self):
+        new_zombies = self.zombie_factory.spawn_wave(self.current_wave)
+        if new_zombies is None:
+            # จบโหมด Story
+            self.game_state = "GAMEOVER" 
+        else:
+            for z in new_zombies:
+                self.all_sprites.add(z)
+                self.zombies.add(z)
 
     def events(self):
         for event in pg.event.get():
@@ -64,51 +62,78 @@ class Game:
                     mouse_pos = pg.mouse.get_pos()
                     if self.restart_button_rect.collidepoint(mouse_pos):
                         self.reset_game()
+            
+            elif self.game_state == "PLAYING":
+                # กดรัวไม่ได้ ป้องกันการเกิดบั๊กเปลี่ยนปืนรัวๆ (Single Press)
+                if event.type == pg.KEYDOWN:
+                    if event.key == RELOAD:
+                        self.player.weapon.reload()
+                    elif event.key == SWITCH_WEAPON_1:
+                        self.player.weapon.kill()
+                        self.player.weapon = Glock(self.player.rect.centerx, self.player.rect.centery)
+                        self.all_sprites.add(self.player.weapon)
+                    elif event.key == SWITCH_WEAPON_2:
+                        self.player.weapon.kill()
+                        self.player.weapon = M16(self.player.rect.centerx, self.player.rect.centery)
+                        self.all_sprites.add(self.player.weapon)
+
+        if self.game_state == "PLAYING":
+            keys = pg.key.get_pressed()
+            # การยิงแบบรัว (Holding Button) ให้ขึ้นอยู่กับ Fire Rate ของปืนนั้นๆ
+            if keys[SHOOT]:
+                bullet = self.player.attack()
+                if bullet:
+                    self.all_sprites.add(bullet)
+                    self.bullets.add(bullet)
 
     def update(self):
         if self.game_state == "PLAYING":
-            self.all_sprites.update(player_pos=self.player.rect.center, bullet_group=self.bullets)
+            # ส่งพิกัดเป้าหมายไปให้ซอมบี้
+            self.all_sprites.update(player_pos=self.player.rect.center)
             
-            for b in self.bullets:
-                if b not in self.all_sprites:
-                    self.all_sprites.add(b)
-
-            now = pg.time.get_ticks()
-            if now - self.spawn_timer > 2000:
-                self.spawn_zombie()
-                self.spawn_timer = now
-
+            # เช็คการชนกันระหว่างกระสุนและซอมบี้ (การคืนค่า True ฝั่งกระสุนหมายถึงลบกระสุนทิ้ง)
             hits = pg.sprite.groupcollide(self.zombies, self.bullets, False, True)
-            for zombie, bullets in hits.items():
-                for b in bullets:
-                    zombie.take_damage(b.damage)
-                    if zombie.hp <= 0:
+            for zombie, bullet_hits in hits.items():
+                for b in bullet_hits:
+                    # ถ้าซอมบี้ตาย ให้เพิ่มคะแนน
+                    if zombie.take_damage(b.damage):
                         self.score += 10
-
-            if pg.sprite.spritecollide(self.player, self.zombies, False):
-                for zombie in pg.sprite.spritecollide(self.player, self.zombies, False):
+            
+            # เช็คว่าผู้เล่นโดนซอมบี้โจมตีไหม
+            # ใช้ pygame.time เพื่อหน่วงเวลาโจมตี
+            now = pg.time.get_ticks()
+            for zombie in pg.sprite.spritecollide(self.player, self.zombies, False):
+                # โจมตีและเช็คว่าโดนดาเมจ
+                if getattr(self, "last_attacked", 0) + self.zombie_attack_delay < now:
                     zombie.attack(self.player)
-                
-                if self.player.hp <= 0:
-                    self.game_state = "GAMEOVER"
+                    self.last_attacked = now
+            
+            if self.player.hp <= 0:
+                self.game_state = "GAMEOVER"
+
+            # ข้ามไปด่านถัดไปเมื่อซอมบี้หมด
+            if len(self.zombies) == 0:
+                self.current_wave += 1
+                self.spawn_wave()
 
     def draw(self):
         self.screen.fill(DARK_GRAY)
         self.all_sprites.draw(self.screen)
         
-        # UI
+        # UI (ใช้ Dependency ของ Settings โดยตรง)
         ui_font = pg.font.SysFont(None, 36)
-        stats_img = ui_font.render(f'HP: {self.player.hp} | Score: {self.score} | Ammo: {self.player.weapon.current_ammo}', True, WHITE)
+        stats_text = f'Wave: {self.current_wave}  |  HP: {self.player.hp}  |  Score: {self.score}  |  Ammo: {self.player.weapon.current_ammo}/{self.player.weapon.magazine_size}'
+        stats_img = ui_font.render(stats_text, True, WHITE)
         self.screen.blit(stats_img, (20, 20))
         
         if self.game_state == "GAMEOVER":
-            # Overlay
+            # วาด Overlay
             overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
-            overlay.fill((0, 0, 0, 180)) # จอมืดโปร่งแสง
+            overlay.fill((0, 0, 0, 180))
             self.screen.blit(overlay, (0,0))
             
-            # Text
-            msg = self.font.render("GAME OVER", True, RED)
+            msg_text = "GAME OVER" if self.player.hp <= 0 else "YOU WIN!"
+            msg = self.font.render(msg_text, True, RED if self.player.hp <= 0 else GREEN)
             msg_rect = msg.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
             self.screen.blit(msg, msg_rect)
             

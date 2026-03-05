@@ -1,15 +1,17 @@
 import pygame as pg
 import math
-import settings
+from settings import *
 from base_bullet import NineMM, FiveFiveSix
 
 class BaseWeapon(pg.sprite.Sprite):
-    def __init__(self, x, y, weapon_type, bullet_type, magazine_size, reload_time, fire_rate):
+    def __init__(self, x, y, weapon, bullet_type, magazine_size, reload_time, fire_rate, size=(40, 15)):
         super().__init__()
         try:
-            self.original_image = pg.image.load(weapon_type).convert_alpha()
-        except:
-            self.original_image = pg.Surface((10, 10))
+            self.original_image = pg.image.load(weapon).convert_alpha()
+            self.original_image = pg.transform.scale(self.original_image, size)
+        except Exception as e:
+            print(f"Warning: Could not load weapon image '{weapon}' - {e}")
+            self.original_image = pg.Surface(size)
             self.original_image.fill(DARK_GRAY)
         self.image = self.original_image.copy()
         self.rect = self.image.get_rect(center=(x, y))
@@ -19,8 +21,13 @@ class BaseWeapon(pg.sprite.Sprite):
         self.reload_time = reload_time
         self.fire_rate = fire_rate * 1000
         self.last_shot_time = 0
+        self.angle = 0
 
-    def update(self, player_pos):
+    def update(self, *args, **kwargs):
+        player_pos = kwargs.get('player_pos', self.rect.center)
+        if hasattr(self, 'owner_center'):
+            # In case it's directly assigned instead
+            pass
         self.rect.center = player_pos
         self.rotate_to_mouse()
 
@@ -48,9 +55,27 @@ class BaseWeapon(pg.sprite.Sprite):
             self.current_ammo = self.magazine_size
 
 class Glock(BaseWeapon):
-    def __init__(self, x, y, weapon_type, bullet_type, magazine_size, reload_time, fire_rate):
-        super().__init__(x, y, "assets/weapon/glock/glock.png", NineMM, 10, 1, 0.1)
+    def __init__(self, x, y):
+        # เราขอแค่ x, y เพื่อรู้ว่าจะให้ปืนเกิดตรงไหน
+        # ส่วนค่าอื่นๆ เรา (Glock) รู้ดีอยู่แล้วว่าเราคืออะไร
+        super().__init__(
+            x, y, 
+            "assets/weapon/glock/glock.png",  # weapon
+            NineMM,                           # bullet_type
+            10,                               # magazine_size
+            1,                                # reload_time
+            0.1,                              # fire_rate
+            size=(30, 15)                     # ขนาดปืนพก
+        )
 
 class M16(BaseWeapon):
-    def __init__(self, x, y, weapon_type, bullet_type, magazine_size, reload_time, fire_rate)
-        super().__init__(x, y, "assets/weapon/m16/m16.png", FiveFiveSix, 30, 2, 0.1)
+    def __init__(self, x, y):
+        super().__init__(
+            x, y, 
+            "assets/weapon/m16/m16.png", 
+            FiveFiveSix, 
+            30, 
+            2, 
+            0.1,
+            size=(60, 20) # ขนาดปืนไรเฟิลจะยาวกว่าปกติ
+        )

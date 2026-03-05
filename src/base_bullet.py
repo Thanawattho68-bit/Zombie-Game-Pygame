@@ -8,9 +8,11 @@ class Bullet(ABC, pg.sprite.Sprite):
         super().__init__()
         try:
             self.image = pg.image.load(image_path).convert_alpha()
-        except:
+            self.image = pg.transform.scale(self.image, (10, 10))
+        except Exception as e:
+            print(f"Warning: Could not load bullet image '{image_path}' - {e}")
             self.image = pg.Surface((10, 10))
-            self.image.fill(DARK_GRAY)
+            self.image.fill(RED)
             
         self.rect = self.image.get_rect(center=(x, y))
         self.pos = pg.math.Vector2(x, y)
@@ -18,7 +20,7 @@ class Bullet(ABC, pg.sprite.Sprite):
         self.speed = speed
         self.damage = damage
 
-    def update(self):
+    def update(self, *args, **kwargs):
         self.pos += self.direction * self.speed
         self.rect.center = self.pos
         if not pg.display.get_surface().get_rect().contains(self.rect):

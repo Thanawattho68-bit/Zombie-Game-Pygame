@@ -1,3 +1,5 @@
+import pygame as pg
+
 # สถาบันการศึกษากำหนดค่าคอนฟิก (Game Settings)
 
 # Screen Settings

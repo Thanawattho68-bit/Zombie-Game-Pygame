@@ -3,13 +3,14 @@ from abc import abstractmethod, ABC
 from settings import *
 
 class BaseEntity(ABC, pg.sprite.Sprite):
-    def __init__(self, x, y, hp, speed, entity):
+    def __init__(self, x, y, hp, speed, entity, size=(35, 35)):
         super().__init__()
         try:
             self.image = pg.image.load(entity).convert_alpha()
-        except pg.error as e:
-            print(f"Error loading image: {e}")
-            self.image = pg.Surface((35, 35))
+            self.image = pg.transform.scale(self.image, size)
+        except Exception as e:
+            print(f"Warning: Could not load entity image '{entity}' - {e}")
+            self.image = pg.Surface(size)
             self.image.fill(GREEN)
 
         self.hp = hp
@@ -25,7 +26,7 @@ class BaseEntity(ABC, pg.sprite.Sprite):
         pass
 
     @abstractmethod
-    def attack(self, target):
+    def attack(self, target=None):
         pass
 
     def take_damage(self, damage):
