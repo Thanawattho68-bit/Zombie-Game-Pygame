@@ -125,6 +125,8 @@ class Game:
                     self.main_menu_index = 0
                 elif self.exit_btn_rect.collidepoint(mouse_pos):
                     self.main_menu_index = 1
+                    
+            elif self.game_state == "GAMEOVER":
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if self.restart_button_rect.collidepoint(event.pos):
                         self.game_state = "MAIN_MENU"
@@ -248,7 +250,10 @@ class Game:
                     if zombie.take_damage(b.damage):
                         self.score += 10
                         
-            self.all_sprites.update(player_pos=self.player.rect.center)
+            self.all_sprites.update(
+                player_pos=self.player.rect.center,
+                weapon_pos=(self.player.rect.centerx, self.player.rect.bottom)
+            )
             
             now = pg.time.get_ticks()
             if self.player:

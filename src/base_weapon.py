@@ -1,5 +1,6 @@
 import pygame as pg
 import math
+import random
 from settings import *
 from base_bullet import NineMM, FiveFiveSix
 
@@ -66,9 +67,21 @@ class BaseWeapon(pg.sprite.Sprite):
                 snd.set_volume(max(0.0, min(1.0, volume)))
 
     def play_sound(self, sound_type):
-        import random
         if hasattr(self, 'sounds') and sound_type in self.sounds and self.sounds[sound_type]:
-            random.choice(self.sounds[sound_type]).play()
+            # เอาเสียงเก่าให้หยุดก่อน (ถ้าเป็นเสียงปืนกระบอกเดียวกันรัวๆ) ป้องกันเสียงซ้อนทับจนความดังทะลุหลอด
+            if sound_type == "shoot":
+                prev_channel = getattr(self, '_current_shoot_channel', None)
+                if prev_channel and prev_channel.get_busy():
+                    prev_channel.stop()
+                    
+            snd = random.choice(self.sounds[sound_type])
+            channel = snd.play()
+            
+            # บังคับความดังทับลงบน Channel เพื่อรับประกัน 100% ว่าเบาแน่นอน
+            if sound_type == "shoot":
+                self._current_shoot_channel = channel
+                if channel:
+                    channel.set_volume(SHOOT_VOLUME)
 
     def update(self, *args, **kwargs):
         # เช็คว่ากำลัง Reload อยู่หรือเปล่า
@@ -78,11 +91,13 @@ class BaseWeapon(pg.sprite.Sprite):
                 self.current_ammo = self.magazine_size
                 self.is_reloading = False
 
-        player_pos = kwargs.get('player_pos', self.rect.center)
-        if hasattr(self, 'owner_center'):
-            # In case it's directly assigned instead
-            pass
-        self.rect.center = player_pos
+        # ควบคุมตำแหน่งของปืน ถ้ามีข้อมูล weapon_pos ให้เกาะตำแหน่งนั้นเป็นหลัก (ไว้เกาะ y=0 ของ player)
+        if 'weapon_pos' in kwargs:
+            self.rect.center = kwargs['weapon_pos']
+        else:
+            player_pos = kwargs.get('player_pos', self.rect.center)
+            self.rect.center = player_pos
+            
         self.rotate_to_mouse()
 
     def rotate_to_mouse(self):

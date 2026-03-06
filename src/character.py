@@ -93,7 +93,7 @@ class Soldier(Player):
 class Scout(Player):
     def __init__(self, x, y):
         folder = "assets/character/player/Scout"
-        super().__init__(x, y, 80, 7, f"{folder}/image", f"{folder}/sound", weapon_class=Glock)
+        super().__init__(x, y, 80, 7, f"{folder}/image", f"{folder}/sound", weapon_class=M16)
         self.char_name = "Scout"
 
 class Defender(Player):
@@ -104,8 +104,8 @@ class Defender(Player):
 
 
 class Zombie(BaseEntity):
-    def __init__(self, x, y, hp, speed, entity, attack_damage, sound_folder):
-        super().__init__(x, y, hp, speed, entity)
+    def __init__(self, x, y, hp, speed, entity, attack_damage, sound_folder, size=(35, 35)):
+        super().__init__(x, y, hp, speed, entity, size=size)
         self.attack_damage = attack_damage
         self.pos = pg.math.Vector2(x, y)
         self.sound_folder = sound_folder
@@ -177,7 +177,7 @@ class TankZombie(Zombie):
     def __init__(self, x, y):
         folder = "assets/character/zombie/zombie_tank"
         img = get_random_image(f"{folder}/image")
-        super().__init__(x, y, 4000, 3.5, img, 24, f"{folder}/sound")
+        super().__init__(x, y, 4000, 3.5, img, 24, f"{folder}/sound", size=(80, 80))
 
 
 # --- 3. ส่วนของ Factory (โรงงานสร้างซอมบี้) ---
