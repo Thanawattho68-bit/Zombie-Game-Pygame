@@ -26,12 +26,18 @@ class BaseEntity(ABC, pg.sprite.Sprite):
         pass
 
     @abstractmethod
+    def play_sound(self, sound_type):
+        pass
+
+    @abstractmethod
     def attack(self, target=None):
         pass
 
     def take_damage(self, damage):
         self.hp -= damage
+        self.play_sound("damage")
         if self.hp <= 0:
+            self.play_sound("death")
             self.kill()
             return True
         return False

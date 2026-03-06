@@ -12,9 +12,27 @@ class Player(BaseEntity):
         # ให้ตัวละคร Player ใหญ่เป็นพิเศษ เช่น 50x50
         super().__init__(x, y, hp, speed, entity, size=(50, 50))
         self.weapon = Glock(x, y) # Default weapon
+        self._load_sounds()
+
+    def _load_sounds(self):
+        self.sounds = {}
+        for snd in ["damage", "death", "reload"]:
+            snd_file = f"assets/character/player/sound/{snd}_1.wav"
+            try:
+                self.sounds[snd] = pg.mixer.Sound(snd_file)
+            except Exception as e:
+                print(f"Warning: Could not load player sound '{snd_file}': {e}")
 
     def spawn(self):
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+
+    def play_sound(self, sound_type):
+        if hasattr(self, 'sounds') and sound_type in self.sounds:
+            self.sounds[sound_type].play()
+
+    def reload_weapon(self):
+        if self.weapon.reload():
+            self.play_sound("reload")
 
     def update(self, *args, **kwargs):
         keys = pg.key.get_pressed()
@@ -39,14 +57,36 @@ class Player(BaseEntity):
 
 
 class Zombie(BaseEntity):
-    def __init__(self, x, y, hp, speed, entity, attack_damage):
+    def __init__(self, x, y, hp, speed, entity, attack_damage, sound_folder):
         super().__init__(x, y, hp, speed, entity)
         self.attack_damage = attack_damage
-        # สำคัญ: เก็บตำแหน่งเป็น Vector เพื่อรักษาค่าทศนิยม (Precision)
         self.pos = pg.math.Vector2(x, y)
+        self.sound_folder = sound_folder
+        self._load_sounds()
+        self.next_idle_sound_time = pg.time.get_ticks() + random.randint(2000, 8000)
+
+    def _load_sounds(self):
+        self.sounds = {"idle": [], "death": [], "damage": []}
+        if not os.path.exists(self.sound_folder):
+            print(f"Warning: Sound folder not found '{self.sound_folder}'")
+            return
+            
+        for f in os.listdir(self.sound_folder):
+            if f.endswith(('.wav', '.ogg', '.mp3')):
+                for s_type in self.sounds.keys():
+                    if f.startswith(s_type):
+                        try:
+                            snd = pg.mixer.Sound(os.path.join(self.sound_folder, f))
+                            self.sounds[s_type].append(snd)
+                        except Exception as e:
+                            print(f"Warning: Could not load zombie sound '{f}': {e}")
 
     def spawn(self):
         pass
+
+    def play_sound(self, sound_type):
+        if hasattr(self, 'sounds') and sound_type in self.sounds and self.sounds[sound_type]:
+            random.choice(self.sounds[sound_type]).play()
 
     def update(self, *args, **kwargs):
         player_pos = kwargs.get('player_pos')
@@ -59,10 +99,14 @@ class Zombie(BaseEntity):
             
             if direction.length() > 0:
                 direction = direction.normalize() * self.speed
-                # อัปเดตตำแหน่งจริง (ทศนิยม)
                 self.pos += direction
-                # อัปเดต rect (จำนวนเต็ม) เพื่อใช้ในการวาดภาพและเช็ค Collision
                 self.rect.center = (self.pos.x, self.pos.y)
+
+        # สุ่มเล่นเสียง Idle
+        now = pg.time.get_ticks()
+        if now >= self.next_idle_sound_time:
+            self.play_sound("idle")
+            self.next_idle_sound_time = now + random.randint(3000, 10000)
 
     def attack(self, target=None):
         if target and self.rect.colliderect(target.rect):
@@ -70,20 +114,37 @@ class Zombie(BaseEntity):
 
 # --- Zombie Subclasses ---
 
+import os
+
+def get_random_zombie_image(folder_path, default_fallback):
+    """
+    ฟังก์ชันช่วยสุ่มไฟล์รูปในโฟลเดอร์ที่กำหนด
+    ถ้ารูปในโฟลเดอร์มีมากกว่า 1 รูป มันจะสุ่มหยิบมา 1 รูป
+    ถ้าโฟลเดอร์ไม่มีอยู่จริง จะส่งค่า default_fallback กลับไปกันเกมพัง
+    """
+    if os.path.exists(folder_path) and os.path.isdir(folder_path):
+        images = [f for f in os.listdir(folder_path) if f.endswith(('.png', '.jpg'))]
+        if images:
+            return os.path.join(folder_path, random.choice(images))
+    return default_fallback
+
 class NormalZombie(Zombie):
     def __init__(self, x, y):
-        # ถอดแบบจาก Common Infected (L4D2)
-        super().__init__(x, y, 50, 2.5, "assets/character/zombie/zombie_normal/zombie_normal1.png", 10)
+        folder = "assets/character/zombie/zombie_normal/image"
+        img = get_random_zombie_image(folder, f"{folder}/zombie_normal1.png")
+        super().__init__(x, y, 50, 2.5, img, 10, "assets/character/zombie/zombie_normal/sound")
 
 class FastZombie(Zombie):
     def __init__(self, x, y):
-        # ถอดแบบจาก Hunter (L4D2) เลือดเยอะ วิ่งไว โจมตีแรง
-        super().__init__(x, y, 250, 6, "assets/character/zombie/zombie_fast/zombie_fast1.png", 15)
+        folder = "assets/character/zombie/zombie_fast/image"
+        img = get_random_zombie_image(folder, f"{folder}/zombie_fast1.png")
+        super().__init__(x, y, 250, 6, img, 15, "assets/character/zombie/zombie_fast/sound")
 
 class TankZombie(Zombie):
     def __init__(self, x, y):
-        # ถอดแบบจาก Tank (L4D2) ถึกมหาศาล แต่เดินช้ากว่าตัวอื่นเล็กน้อย
-        super().__init__(x, y, 4000, 3.5, "assets/character/zombie/zombie_tank/zombie_tank1.png", 24)
+        folder = "assets/character/zombie/zombie_tank/image"
+        img = get_random_zombie_image(folder, f"{folder}/zombie_tank1.png")
+        super().__init__(x, y, 4000, 3.5, img, 24, "assets/character/zombie/zombie_tank/sound")
 
 
 # --- 3. ส่วนของ Factory (โรงงานสร้างซอมบี้) ---

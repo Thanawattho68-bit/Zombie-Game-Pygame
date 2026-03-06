@@ -35,7 +35,7 @@ class Game:
         self.bullets = pg.sprite.Group()
         
         # ตัวละครหลัก
-        self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, PLAYER_HP, PLAYER_SPEED, "assets/character/player/player.png")
+        self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, PLAYER_HP, PLAYER_SPEED, "assets/character/player/image/player1.png")
         self.all_sprites.add(self.player)
         self.all_sprites.add(self.player.weapon)
         
@@ -67,7 +67,7 @@ class Game:
                 # กดรัวไม่ได้ ป้องกันการเกิดบั๊กเปลี่ยนปืนรัวๆ (Single Press)
                 if event.type == pg.KEYDOWN:
                     if event.key == RELOAD:
-                        self.player.weapon.reload()
+                        self.player.reload_weapon()
                     elif event.key == SWITCH_WEAPON_1:
                         self.player.weapon.kill()
                         self.player.weapon = Glock(self.player.rect.centerx, self.player.rect.centery)
@@ -79,8 +79,9 @@ class Game:
 
         if self.game_state == "PLAYING":
             keys = pg.key.get_pressed()
-            # การยิงแบบรัว (Holding Button) ให้ขึ้นอยู่กับ Fire Rate ของปืนนั้นๆ
-            if keys[SHOOT]:
+            mouse_pressed = pg.mouse.get_pressed()
+            # การยิงแบบรัว (Holding Button) ให้ขึ้นอยู่กับ Fire Rate ของปืนนั้นๆ (ยิงได้ทั้ง Spacebar และคลิกซ้าย)
+            if keys[SHOOT] or mouse_pressed[0]:
                 bullet = self.player.attack()
                 if bullet:
                     self.all_sprites.add(bullet)
@@ -88,6 +89,13 @@ class Game:
 
     def update(self):
         if self.game_state == "PLAYING":
+            # 1. เช็คชนทันทีก่อนอัปเดตตำแหน่ง (แก้ปัญหา Point Blank ยิงระยะเผาขนแล้วกระสุนทะลุ)
+            hits = pg.sprite.groupcollide(self.zombies, self.bullets, False, True)
+            for zombie, bullet_hits in hits.items():
+                for b in bullet_hits:
+                    if zombie.take_damage(b.damage):
+                        self.score += 10
+                        
             # ส่งพิกัดเป้าหมายไปให้ซอมบี้
             self.all_sprites.update(player_pos=self.player.rect.center)
             

@@ -24,6 +24,28 @@ class BaseWeapon(pg.sprite.Sprite):
         self.angle = 0
         self.is_reloading = False
         self.reload_start_time = 0
+        self._load_sounds(weapon)
+
+    def _load_sounds(self, weapon_path):
+        self.sounds = {}
+        # ดึงว่าปืนนี้คือปืนอะไรจากชื่อโพลเดอร์ อิงจาก path เช่น assets/weapon/glock/image/glock.png -> glock (ind -3)
+        try:
+            weapon_name = weapon_path.split('/')[-3]
+            base_snd_path = f"assets/weapon/{weapon_name}/sound"
+            
+            # โหลดทีละไฟล์เผื่อบางไฟล์ไม่มี
+            for snd in ["shoot", "reload"]:
+                snd_file = f"{base_snd_path}/{snd}_1.wav"
+                try:
+                    self.sounds[snd] = pg.mixer.Sound(snd_file)
+                except Exception as e:
+                    print(f"Warning: Could not load weapon sound '{snd_file}': {e}")
+        except Exception as e:
+            print(f"Warning: Failed to setup weapon sounding error: {e}")
+
+    def play_sound(self, sound_type):
+        if hasattr(self, 'sounds') and sound_type in self.sounds:
+            self.sounds[sound_type].play()
 
     def update(self, *args, **kwargs):
         # เช็คว่ากำลัง Reload อยู่หรือเปล่า
@@ -76,6 +98,7 @@ class BaseWeapon(pg.sprite.Sprite):
             # ต้องเช็คด้วยว่า เวลาผ่านไปนานพอหรือยัง (now - last_shot > delay)
             self.current_ammo -= 1
             self.last_shot_time = now
+            self.play_sound("shoot")
             return self.shoot()
 
     def reload(self):
@@ -83,6 +106,9 @@ class BaseWeapon(pg.sprite.Sprite):
             self.is_reloading = True
             self.reload_start_time = pg.time.get_ticks()
             self.current_ammo = 0 # เซ็ตให้เหลือ 0 ระหว่างการโหลด
+            self.play_sound("reload")
+            return True
+        return False
     
 class Glock(BaseWeapon):
     def __init__(self, x, y):
@@ -90,7 +116,7 @@ class Glock(BaseWeapon):
         # ส่วนค่าอื่นๆ เรา (Glock) รู้ดีอยู่แล้วว่าเราคืออะไร
         super().__init__(
             x, y, 
-            "assets/weapon/glock/glock.png",  # weapon
+            "assets/weapon/glock/image/glock.png",  # weapon
             NineMM,                           # bullet_type
             15,                               # magazine_size (L4D2 Pistol)
             1,                                # reload_time
@@ -102,7 +128,7 @@ class M16(BaseWeapon):
     def __init__(self, x, y):
         super().__init__(
             x, y, 
-            "assets/weapon/m16/m16.png", 
+            "assets/weapon/m16/image/m16.png", 
             FiveFiveSix, 
             50,                               # magazine_size (L4D2 M16)
             2,                                # reload_time
