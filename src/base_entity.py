@@ -1,17 +1,28 @@
 import pygame as pg
+import random
 from abc import abstractmethod, ABC
 from settings import *
 
 class BaseEntity(ABC, pg.sprite.Sprite):
     def __init__(self, x, y, hp, speed, entity, size=(35, 35)):
         super().__init__()
-        try:
-            self.image = pg.image.load(entity).convert_alpha()
-            self.image = pg.transform.scale(self.image, size)
-        except Exception as e:
-            print(f"Warning: Could not load entity image '{entity}' - {e}")
+        # พยายามโหลดรูปภาพ ถ้าไม่มีหรือโหลดไม่ได้จะสร้าง Surface สีพื้นแทน (ตามความต้องการของผู้ใช้)
+        success = False
+        if entity:
+            try:
+                self.image = pg.image.load(entity).convert_alpha()
+                self.image = pg.transform.scale(self.image, size)
+                success = True
+            except Exception as e:
+                print(f"Warning: Could not load entity image '{entity}' - {e}")
+        
+        if not success:
+            # สร้างสีพื้นแบบสุ่มเล็กน้อยเพื่อให้แยกแยะตัวที่ไม่มีรูปได้
             self.image = pg.Surface(size)
-            self.image.fill(GREEN)
+            placeholder_color = (random.randint(50, 200), random.randint(50, 200), random.randint(50, 200))
+            self.image.fill(placeholder_color)
+            # วาดกรอบให้ดูเป็นบล็อก
+            pg.draw.rect(self.image, WHITE, self.image.get_rect(), 2)
 
         self.hp = hp
         self.speed = speed

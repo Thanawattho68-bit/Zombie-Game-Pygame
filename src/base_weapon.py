@@ -27,34 +27,47 @@ class BaseWeapon(pg.sprite.Sprite):
         self._load_sounds(weapon)
 
     def _load_sounds(self, weapon_path):
-        self.sounds = {}
+        import os
+        self.sounds = {"shoot": [], "reload": []}
         # ดึงว่าปืนนี้คือปืนอะไรจากชื่อโพลเดอร์ อิงจาก path เช่น assets/weapon/glock/image/glock.png -> glock (ind -3)
         try:
-            weapon_name = weapon_path.split('/')[-3]
-            base_snd_path = f"assets/weapon/{weapon_name}/sound"
-            
-            # โหลดทีละไฟล์เผื่อบางไฟล์ไม่มี
-            for snd in ["shoot", "reload"]:
-                snd_file = f"{base_snd_path}/{snd}_1.wav"
-                try:
-                    snd_obj = pg.mixer.Sound(snd_file)
-                    # ลดความดังเสียงปืนเริ่มต้นไม่ให้หูแตก อ้างอิงจาก settings.py
-                    if snd == "shoot":
-                        snd_obj.set_volume(SHOOT_VOLUME)
-                    self.sounds[snd] = snd_obj
-                except Exception as e:
-                    print(f"Warning: Could not load weapon sound '{snd_file}': {e}")
+            # ใช้ '/' เป็น separator เสมอเพราะเราเขียน path แบบ POSIX ในโค้ด
+            parts = weapon_path.replace('\\', '/').split('/')
+            if len(parts) >= 3:
+                weapon_name = parts[-3]
+                base_snd_path = f"assets/weapon/{weapon_name}/sound"
+                
+                if not os.path.exists(base_snd_path):
+                    print(f"Warning: Weapon sound folder not found '{base_snd_path}'")
+                    return
+
+                for f in os.listdir(base_snd_path):
+                    if f.endswith(('.wav', '.ogg', '.mp3')):
+                        for s_type in self.sounds.keys():
+                            if f.startswith(s_type):
+                                try:
+                                    snd_obj = pg.mixer.Sound(os.path.join(base_snd_path, f))
+                                    # ลดความดังเสียงปืนเริ่มต้นไม่ให้หูแตก อ้างอิงจาก settings.py
+                                    if s_type == "shoot":
+                                        snd_obj.set_volume(SHOOT_VOLUME)
+                                    self.sounds[s_type].append(snd_obj)
+                                except Exception as e:
+                                    print(f"Warning: Could not load weapon sound '{f}': {e}")
+            else:
+                print(f"Warning: Invalid weapon path structure '{weapon_path}'")
         except Exception as e:
-            print(f"Warning: Failed to setup weapon sounding error: {e}")
+            print(f"Warning: Failed to setup weapon sound: {e}")
 
     def set_sound_volume(self, sound_type, volume):
         """จำกัดความดังของเสียงที่ต้องการ (ค่า volume ระหว่าง 0.0 - 1.0)"""
         if hasattr(self, 'sounds') and sound_type in self.sounds:
-            self.sounds[sound_type].set_volume(max(0.0, min(1.0, volume)))
+            for snd in self.sounds[sound_type]:
+                snd.set_volume(max(0.0, min(1.0, volume)))
 
     def play_sound(self, sound_type):
-        if hasattr(self, 'sounds') and sound_type in self.sounds:
-            self.sounds[sound_type].play()
+        import random
+        if hasattr(self, 'sounds') and sound_type in self.sounds and self.sounds[sound_type]:
+            random.choice(self.sounds[sound_type]).play()
 
     def update(self, *args, **kwargs):
         # เช็คว่ากำลัง Reload อยู่หรือเปล่า

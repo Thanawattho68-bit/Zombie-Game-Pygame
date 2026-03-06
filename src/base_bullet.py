@@ -36,4 +36,4 @@ class NineMM(Bullet):
 
 class FiveFiveSix(Bullet):
     def __init__(self, x, y, direction):
-        super().__init__(x, y, direction, 30, 67, "assets/bullet/five_five_six/five_five_six.png")
+        super().__init__(x, y, direction, 30, 45, "assets/bullet/five_five_six/five_five_six.png")
