@@ -8,10 +8,10 @@ from base_weapon import Glock, M16
 # --- 2. ส่วนของ Entities (ตัวละคร) ---
 
 class Player(BaseEntity):
-    def __init__(self, x, y, hp, speed, entity):
+    def __init__(self, x, y, hp, speed, entity, weapon_class=Glock):
         # ให้ตัวละคร Player ใหญ่เป็นพิเศษ เช่น 50x50
         super().__init__(x, y, hp, speed, entity, size=(50, 50))
-        self.weapon = Glock(x, y) # Default weapon
+        self.weapon = weapon_class(x, y) 
         self._load_sounds()
 
     def _load_sounds(self):
@@ -54,6 +54,21 @@ class Player(BaseEntity):
 
     def attack(self, target=None):
         return self.weapon.pull_trigger()
+
+class Soldier(Player):
+    def __init__(self, x, y):
+        super().__init__(x, y, 120, 5, "assets/character/player/image/player1.png", weapon_class=M16)
+        self.char_name = "Soldier"
+
+class Scout(Player):
+    def __init__(self, x, y):
+        super().__init__(x, y, 80, 7, "assets/character/player/image/player1.png", weapon_class=Glock)
+        self.char_name = "Scout"
+
+class Defender(Player):
+    def __init__(self, x, y):
+        super().__init__(x, y, 200, 3.5, "assets/character/player/image/player1.png", weapon_class=M16)
+        self.char_name = "Defender"
 
 
 class Zombie(BaseEntity):
