@@ -37,11 +37,20 @@ class BaseWeapon(pg.sprite.Sprite):
             for snd in ["shoot", "reload"]:
                 snd_file = f"{base_snd_path}/{snd}_1.wav"
                 try:
-                    self.sounds[snd] = pg.mixer.Sound(snd_file)
+                    snd_obj = pg.mixer.Sound(snd_file)
+                    # ลดความดังเสียงปืนเริ่มต้นไม่ให้หูแตก อ้างอิงจาก settings.py
+                    if snd == "shoot":
+                        snd_obj.set_volume(SHOOT_VOLUME)
+                    self.sounds[snd] = snd_obj
                 except Exception as e:
                     print(f"Warning: Could not load weapon sound '{snd_file}': {e}")
         except Exception as e:
             print(f"Warning: Failed to setup weapon sounding error: {e}")
+
+    def set_sound_volume(self, sound_type, volume):
+        """จำกัดความดังของเสียงที่ต้องการ (ค่า volume ระหว่าง 0.0 - 1.0)"""
+        if hasattr(self, 'sounds') and sound_type in self.sounds:
+            self.sounds[sound_type].set_volume(max(0.0, min(1.0, volume)))
 
     def play_sound(self, sound_type):
         if hasattr(self, 'sounds') and sound_type in self.sounds:

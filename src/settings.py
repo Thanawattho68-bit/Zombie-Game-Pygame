@@ -19,6 +19,9 @@ DARK_GRAY = (50, 50, 50)
 PLAYER_SPEED = 5
 PLAYER_HP = 100
 
+# Sound Settings
+SHOOT_VOLUME = 0.3
+
 # Keys
 WALK_UP = pg.K_w
 WALK_DOWN = pg.K_s
