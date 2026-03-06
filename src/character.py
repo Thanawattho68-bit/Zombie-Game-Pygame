@@ -1,34 +1,63 @@
 import pygame as pg
 import random
+import os
 from base_entity import BaseEntity
 from settings import *
 from wave_difficulty import WaveDifficulty
 from base_weapon import Glock, M16
 
+# --- Helper Functions ---
+
+def get_random_image(folder_path):
+    """
+    ฟังก์ชันช่วยสุ่มไฟล์รูปในโฟลเดอร์ที่กำหนด
+    ถ้ารูปในโฟลเดอร์มีมากกว่า 1 รูป มันจะสุ่มหยิบมา 1 รูป
+    ถ้าโฟลเดอร์ไม่มีอยู่จริง หรือไม่มีรูป จะส่งค่า None กลับไป
+    """
+    if os.path.exists(folder_path) and os.path.isdir(folder_path):
+        images = [f for f in os.listdir(folder_path) if f.endswith(('.png', '.jpg'))]
+        if images:
+            return os.path.join(folder_path, random.choice(images))
+    return None
+
 # --- 2. ส่วนของ Entities (ตัวละคร) ---
 
 class Player(BaseEntity):
-    def __init__(self, x, y, hp, speed, entity, weapon_class=Glock):
+    def __init__(self, x, y, hp, speed, image_folder, sound_folder, weapon_class=Glock):
+        # สุ่มรูปภาพจากโฟลเดอร์เฉพาะของคลาสนั้นๆ
+        img = get_random_image(image_folder)
+        
         # ให้ตัวละคร Player ใหญ่เป็นพิเศษ เช่น 50x50
-        super().__init__(x, y, hp, speed, entity, size=(50, 50))
+        # ถ้า img เป็น None คลาส BaseEntity จะจัดการสร้าง Surface สีพื้นให้เองใน try-except
+        super().__init__(x, y, hp, speed, img, size=(50, 50))
+        
         self.weapon = weapon_class(x, y) 
+        self.sound_folder = sound_folder
         self._load_sounds()
 
     def _load_sounds(self):
-        self.sounds = {}
-        for snd in ["damage", "death", "reload"]:
-            snd_file = f"assets/character/player/sound/{snd}_1.wav"
-            try:
-                self.sounds[snd] = pg.mixer.Sound(snd_file)
-            except Exception as e:
-                print(f"Warning: Could not load player sound '{snd_file}': {e}")
+        # โหลดเสียงโดยใช้ prefix
+        self.sounds = {"damage": [], "death": [], "reload": []}
+        if not os.path.exists(self.sound_folder):
+            # ไม่ต้องปริ้น Warning รัวๆ ถ้าโฟลเดอร์ไม่มี แค่ข้ามไปพอ
+            return
+            
+        for f in os.listdir(self.sound_folder):
+            if f.endswith(('.wav', '.ogg', '.mp3')):
+                for s_type in self.sounds.keys():
+                    if f.startswith(s_type):
+                        try:
+                            snd = pg.mixer.Sound(os.path.join(self.sound_folder, f))
+                            self.sounds[s_type].append(snd)
+                        except Exception as e:
+                            print(f"Warning: Could not load player sound '{f}': {e}")
 
     def spawn(self):
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
     def play_sound(self, sound_type):
-        if hasattr(self, 'sounds') and sound_type in self.sounds:
-            self.sounds[sound_type].play()
+        if hasattr(self, 'sounds') and sound_type in self.sounds and self.sounds[sound_type]:
+            random.choice(self.sounds[sound_type]).play()
 
     def reload_weapon(self):
         if self.weapon.reload():
@@ -57,17 +86,20 @@ class Player(BaseEntity):
 
 class Soldier(Player):
     def __init__(self, x, y):
-        super().__init__(x, y, 120, 5, "assets/character/player/image/player1.png", weapon_class=M16)
+        folder = "assets/character/player/Soldier"
+        super().__init__(x, y, 120, 5, f"{folder}/image", f"{folder}/sound", weapon_class=M16)
         self.char_name = "Soldier"
 
 class Scout(Player):
     def __init__(self, x, y):
-        super().__init__(x, y, 80, 7, "assets/character/player/image/player1.png", weapon_class=Glock)
+        folder = "assets/character/player/Scout"
+        super().__init__(x, y, 80, 7, f"{folder}/image", f"{folder}/sound", weapon_class=Glock)
         self.char_name = "Scout"
 
 class Defender(Player):
     def __init__(self, x, y):
-        super().__init__(x, y, 200, 3.5, "assets/character/player/image/player1.png", weapon_class=M16)
+        folder = "assets/character/player/Defender"
+        super().__init__(x, y, 200, 3.5, f"{folder}/image", f"{folder}/sound", weapon_class=M16)
         self.char_name = "Defender"
 
 
@@ -83,7 +115,7 @@ class Zombie(BaseEntity):
     def _load_sounds(self):
         self.sounds = {"idle": [], "death": [], "damage": []}
         if not os.path.exists(self.sound_folder):
-            print(f"Warning: Sound folder not found '{self.sound_folder}'")
+            print(f"Warning: Zombie sound folder not found '{self.sound_folder}'")
             return
             
         for f in os.listdir(self.sound_folder):
@@ -129,37 +161,23 @@ class Zombie(BaseEntity):
 
 # --- Zombie Subclasses ---
 
-import os
-
-def get_random_zombie_image(folder_path, default_fallback):
-    """
-    ฟังก์ชันช่วยสุ่มไฟล์รูปในโฟลเดอร์ที่กำหนด
-    ถ้ารูปในโฟลเดอร์มีมากกว่า 1 รูป มันจะสุ่มหยิบมา 1 รูป
-    ถ้าโฟลเดอร์ไม่มีอยู่จริง จะส่งค่า default_fallback กลับไปกันเกมพัง
-    """
-    if os.path.exists(folder_path) and os.path.isdir(folder_path):
-        images = [f for f in os.listdir(folder_path) if f.endswith(('.png', '.jpg'))]
-        if images:
-            return os.path.join(folder_path, random.choice(images))
-    return default_fallback
-
 class NormalZombie(Zombie):
     def __init__(self, x, y):
-        folder = "assets/character/zombie/zombie_normal/image"
-        img = get_random_zombie_image(folder, f"{folder}/zombie_normal1.png")
-        super().__init__(x, y, 50, 2.5, img, 10, "assets/character/zombie/zombie_normal/sound")
+        folder = "assets/character/zombie/zombie_normal"
+        img = get_random_image(f"{folder}/image")
+        super().__init__(x, y, 50, 2.5, img, 10, f"{folder}/sound")
 
 class FastZombie(Zombie):
     def __init__(self, x, y):
-        folder = "assets/character/zombie/zombie_fast/image"
-        img = get_random_zombie_image(folder, f"{folder}/zombie_fast1.png")
-        super().__init__(x, y, 250, 6, img, 15, "assets/character/zombie/zombie_fast/sound")
+        folder = "assets/character/zombie/zombie_fast"
+        img = get_random_image(f"{folder}/image")
+        super().__init__(x, y, 250, 6, img, 15, f"{folder}/sound")
 
 class TankZombie(Zombie):
     def __init__(self, x, y):
-        folder = "assets/character/zombie/zombie_tank/image"
-        img = get_random_zombie_image(folder, f"{folder}/zombie_tank1.png")
-        super().__init__(x, y, 4000, 3.5, img, 24, "assets/character/zombie/zombie_tank/sound")
+        folder = "assets/character/zombie/zombie_tank"
+        img = get_random_image(f"{folder}/image")
+        super().__init__(x, y, 4000, 3.5, img, 24, f"{folder}/sound")
 
 
 # --- 3. ส่วนของ Factory (โรงงานสร้างซอมบี้) ---

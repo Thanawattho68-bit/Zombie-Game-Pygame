@@ -20,7 +20,7 @@ PLAYER_SPEED = 5
 PLAYER_HP = 100
 
 # Sound Settings
-SHOOT_VOLUME = 0.3
+SHOOT_VOLUME = 0.1
 
 # Keys
 WALK_UP = pg.K_w
