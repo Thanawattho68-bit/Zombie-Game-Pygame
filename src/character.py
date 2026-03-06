@@ -72,15 +72,18 @@ class Zombie(BaseEntity):
 
 class NormalZombie(Zombie):
     def __init__(self, x, y):
-        super().__init__(x, y, 30, 2, "assets/character/zombie/zombie_normal/zombie_normal1.png", 10)
+        # ถอดแบบจาก Common Infected (L4D2)
+        super().__init__(x, y, 50, 2.5, "assets/character/zombie/zombie_normal/zombie_normal1.png", 10)
 
 class FastZombie(Zombie):
     def __init__(self, x, y):
-        super().__init__(x, y, 10, 4.5, "assets/character/zombie/zombie_fast/zombie_fast1.png", 5)
+        # ถอดแบบจาก Hunter (L4D2) เลือดเยอะ วิ่งไว โจมตีแรง
+        super().__init__(x, y, 250, 6, "assets/character/zombie/zombie_fast/zombie_fast1.png", 15)
 
 class TankZombie(Zombie):
     def __init__(self, x, y):
-        super().__init__(x, y, 100, 1, "assets/character/zombie/zombie_tank/zombie_tank1.png", 20)
+        # ถอดแบบจาก Tank (L4D2) ถึกมหาศาล แต่เดินช้ากว่าตัวอื่นเล็กน้อย
+        super().__init__(x, y, 4000, 3.5, "assets/character/zombie/zombie_tank/zombie_tank1.png", 24)
 
 
 # --- 3. ส่วนของ Factory (โรงงานสร้างซอมบี้) ---
