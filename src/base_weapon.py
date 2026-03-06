@@ -4,7 +4,7 @@ from settings import *
 from base_bullet import NineMM, FiveFiveSix
 
 class BaseWeapon(pg.sprite.Sprite):
-    def __init__(self, x, y, weapon, bullet_type, magazine_size, reload_time, fire_rate, size=(40, 15)):
+    def __init__(self, x, y, weapon, bullet_type, magazine_size, reload_time, fire_rate, size=(40, 15), name="Unknown"):
         super().__init__()
         try:
             self.original_image = pg.image.load(weapon).convert_alpha()
@@ -15,6 +15,7 @@ class BaseWeapon(pg.sprite.Sprite):
             self.original_image.fill(DARK_GRAY)
         self.image = self.original_image.copy()
         self.rect = self.image.get_rect(center=(x, y))
+        self.name = name
         self.bullet_type = bullet_type
         self.magazine_size = magazine_size
         self.current_ammo = magazine_size
@@ -143,7 +144,8 @@ class Glock(BaseWeapon):
             15,                               # magazine_size (L4D2 Pistol)
             1,                                # reload_time
             0.175,                            # fire_rate
-            size=(30, 15)                     # ขนาดปืนพก
+            size=(30, 15),                    # ขนาดปืนพก
+            name="Glock 17"
         )
 
 class M16(BaseWeapon):
@@ -155,5 +157,6 @@ class M16(BaseWeapon):
             50,                               # magazine_size (L4D2 M16)
             2,                                # reload_time
             0.087,                            # fire_rate
-            size=(60, 20) # ขนาดปืนไรเฟิลจะยาวกว่าปกติ
+            size=(60, 20), # ขนาดปืนไรเฟิลจะยาวกว่าปกติ
+            name="M16 Rifle"
         )
