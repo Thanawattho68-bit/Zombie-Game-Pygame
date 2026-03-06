@@ -72,5 +72,6 @@ Zombie-Game-Pygame/
 │   ├── sprites.py     # Class ตัวละครทั้งหมด
 │   └── main.py        # จุดเริ่มเกม
 ├── README.md           # คำอธิบายโปรเจกต์
-└── requirements.txt    # สิ่งที่ต้องติดตั้ง (pygame)
+- **requirements.md**: [Requirements Documentation](file:///d:/Work/OOP%20ZOMBIE/Zombie-Game-Pygame/requirements.md)
+- **requirements.txt**: [Python dependencies](file:///d:/Work/OOP%20ZOMBIE/Zombie-Game-Pygame/requirements.txt)
 ```

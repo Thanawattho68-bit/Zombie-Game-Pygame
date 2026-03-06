@@ -2,7 +2,7 @@ import pygame as pg
 import sys
 import random
 from settings import *
-from character import Player, ZombieFactory
+from character import Soldier, Scout, Defender, ZombieFactory
 from wave_difficulty import Endless
 from base_weapon import Glock, M16
 
@@ -21,10 +21,13 @@ class Game:
         # 2. Factory Pattern for Zombies container
         self.zombie_factory = ZombieFactory(self.difficulty_strategy)
         
-        self.reset_game()
+        self.available_chars = [Soldier, Scout, Defender]
+        self.selected_char_index = 0
+        self.game_state = "CHAR_SELECT"
+        # self.reset_game() # Don't reset yet, wait for selection
 
     def reset_game(self):
-        self.game_state = "PLAYING" # PLAYING or GAMEOVER
+        self.game_state = "PLAYING" # CHAR_SELECT, PLAYING or GAMEOVER
         self.current_wave = 1
         self.score = 0
         self.zombie_attack_delay = 500  # ป้องกันโดนโจมตีรัวๆ ในพริบตา
@@ -34,8 +37,9 @@ class Game:
         self.zombies = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
         
-        # ตัวละครหลัก
-        self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, PLAYER_HP, PLAYER_SPEED, "assets/character/player/image/player1.png")
+        # ตัวละครหลัก (ใช้ตัวละครที่เลือกไว้)
+        char_class = self.available_chars[self.selected_char_index]
+        self.player = char_class(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)
         self.all_sprites.add(self.player)
         self.all_sprites.add(self.player.weapon)
         
@@ -61,8 +65,21 @@ class Game:
                 if event.type == pg.MOUSEBUTTONDOWN:
                     mouse_pos = pg.mouse.get_pos()
                     if self.restart_button_rect.collidepoint(mouse_pos):
-                        self.reset_game()
+                        self.game_state = "CHAR_SELECT" # Back to selection instead of instant reset
             
+            elif self.game_state == "CHAR_SELECT":
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_UP:
+                        self.selected_char_index = (self.selected_char_index - 1) % len(self.available_chars)
+                    elif event.key == pg.K_DOWN:
+                        self.selected_char_index = (self.selected_char_index + 1) % len(self.available_chars)
+                    elif event.key == pg.K_RETURN:
+                        self.reset_game()
+                if event.type == pg.MOUSEBUTTONDOWN:
+                    # Allow clicking to select as well if we define rects later, 
+                    # for now just use keys or implement a simple check
+                    self.reset_game()
+
             elif self.game_state == "PLAYING":
                 # กดรัวไม่ได้ ป้องกันการเกิดบั๊กเปลี่ยนปืนรัวๆ (Single Press)
                 if event.type == pg.KEYDOWN:
@@ -125,34 +142,52 @@ class Game:
                 self.spawn_wave()
 
     def draw(self):
-        self.screen.fill(DARK_GRAY)
-        self.all_sprites.draw(self.screen)
-        
-        # UI (ใช้ Dependency ของ Settings โดยตรง)
-        ui_font = pg.font.SysFont(None, 36)
-        stats_text = f'Wave: {self.current_wave}  |  HP: {self.player.hp}  |  Score: {self.score}  |  Ammo: {self.player.weapon.current_ammo}/{self.player.weapon.magazine_size}'
-        stats_img = ui_font.render(stats_text, True, WHITE)
-        self.screen.blit(stats_img, (20, 20))
-        
-        if self.game_state == "GAMEOVER":
-            # วาด Overlay
-            overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
-            overlay.fill((0, 0, 0, 180))
-            self.screen.blit(overlay, (0,0))
+        if self.game_state == "CHAR_SELECT":
+            self.screen.fill(BLACK)
+            title = self.font.render("SELECT YOUR CHARACTER", True, WHITE)
+            title_rect = title.get_rect(center=(SCREEN_WIDTH//2, 100))
+            self.screen.blit(title, title_rect)
+
+            for i, char in enumerate(self.available_chars):
+                color = GREEN if i == self.selected_char_index else WHITE
+                name_text = char.__name__
+                char_text = self.font.render(name_text, True, color)
+                char_rect = char_text.get_rect(center=(SCREEN_WIDTH//2, 200 + i * 80))
+                self.screen.blit(char_text, char_rect)
             
-            msg_text = "GAME OVER" if self.player.hp <= 0 else "YOU WIN!"
-            msg = self.font.render(msg_text, True, RED if self.player.hp <= 0 else GREEN)
-            msg_rect = msg.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
-            self.screen.blit(msg, msg_rect)
+            hint = pg.font.SysFont(None, 30).render("Use Arrows to switch, ENTER to start", True, WHITE)
+            hint_rect = hint.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 50))
+            self.screen.blit(hint, hint_rect)
             
-            # Restart Button
-            self.restart_button_rect = pg.Rect(0, 0, 200, 60)
-            self.restart_button_rect.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 50)
-            pg.draw.rect(self.screen, WHITE, self.restart_button_rect, border_radius=10)
+        else:
+            self.screen.fill(DARK_GRAY)
+            self.all_sprites.draw(self.screen)
             
-            btn_text = self.font.render("RESTART", True, BLACK)
-            btn_text_rect = btn_text.get_rect(center=self.restart_button_rect.center)
-            self.screen.blit(btn_text, btn_text_rect)
+            # UI (ใช้ Dependency ของ Settings โดยตรง)
+            ui_font = pg.font.SysFont(None, 36)
+            stats_text = f'Wave: {self.current_wave}  |  HP: {self.player.hp}  |  Score: {self.score}  |  Ammo: {self.player.weapon.current_ammo}/{self.player.weapon.magazine_size}'
+            stats_img = ui_font.render(stats_text, True, WHITE)
+            self.screen.blit(stats_img, (20, 20))
+            
+            if self.game_state == "GAMEOVER":
+                # วาด Overlay
+                overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
+                overlay.fill((0, 0, 0, 180))
+                self.screen.blit(overlay, (0,0))
+                
+                msg_text = "GAME OVER" if self.player.hp <= 0 else "YOU WIN!"
+                msg = self.font.render(msg_text, True, RED if self.player.hp <= 0 else GREEN)
+                msg_rect = msg.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
+                self.screen.blit(msg, msg_rect)
+                
+                # Restart Button
+                self.restart_button_rect = pg.Rect(0, 0, 200, 60)
+                self.restart_button_rect.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 50)
+                pg.draw.rect(self.screen, WHITE, self.restart_button_rect, border_radius=10)
+                
+                btn_text = self.font.render("RESTART", True, BLACK)
+                btn_text_rect = btn_text.get_rect(center=self.restart_button_rect.center)
+                self.screen.blit(btn_text, btn_text_rect)
 
         pg.display.flip()
 
