@@ -3,8 +3,9 @@ import sys
 import random
 import math
 from settings import *
-from character import Soldier, Scout, Defender, ZombieFactory
-from wave_difficulty import Endless
+import player
+import zombie
+import wave_difficulty
 from base_weapon import Glock, M16
 
 class Game:
@@ -36,12 +37,15 @@ class Game:
         self.return_btn_rect.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 60)
         
         # 1. Dependency Injection & Strategy Pattern
-        self.difficulty_strategy = Endless()
+        # สร้าง Dictionary ที่เก็บ {ชื่อคลาส: ตัวคลาส} อัตโนมัติ
+        self.difficulty_map = {cls.__name__: cls for cls in wave_difficulty.WaveDifficulty.__subclasses__()}
+        # เรียกใช้ตามชื่อได้เลย เช่น "Endless" หรือ "Story"
+        self.difficulty_strategy = self.difficulty_map["Story"]() 
         
         # 2. Factory Pattern for Zombies container
-        self.zombie_factory = ZombieFactory(self.difficulty_strategy)
+        self.zombie_factory = zombie.ZombieFactory(self.difficulty_strategy)
         
-        self.available_chars = [Soldier, Scout, Defender]
+        self.available_chars = player.Player.__subclasses__()
         self.selected_char_index = 0
         self.main_menu_index = 0 # 0: Start, 1: Exit
         
