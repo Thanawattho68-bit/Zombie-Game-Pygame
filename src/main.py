@@ -46,6 +46,24 @@ class Game:
         self.zombie_factory = zombie.ZombieFactory(self.difficulty_strategy)
         
         self.available_chars = player.Player.__subclasses__()
+        self.char_previews = []
+        for char_cls in self.available_chars:
+            try:
+                # ใช้ BASE_PATH ที่เราเพิ่มเข้าไปเพื่อหาโฟลเดอร์รูป
+                img_path = player.get_random_image(f"{char_cls.BASE_PATH}/image")
+                if img_path:
+                    img = pg.image.load(img_path).convert_alpha()
+                    # เก็บเป็นรูปที่ขนาดใหญ่หน่อยหรือขนาดดั้งเดิมไว้ก่อน เพื่อไม่ให้ pixelated เวลาขยาย
+                    # ในที่นี้ขยายเป็น 140x140 (ขนาดสูงสุดที่ใช้) ไว้เลย
+                    img = pg.transform.smoothscale(img, (140, 140))
+                else:
+                    img = pg.Surface((140, 140))
+                    img.fill(WHITE)
+                self.char_previews.append(img)
+            except Exception as e:
+                print(f"Error loading preview for {char_cls.__name__}: {e}")
+                self.char_previews.append(pg.Surface((140, 140)))
+
         self.selected_char_index = 0
         self.main_menu_index = 0 # 0: Start, 1: Exit
         
@@ -150,8 +168,8 @@ class Game:
                 
                 if event.type == pg.MOUSEBUTTONDOWN:
                     for i in range(len(self.available_chars)):
-                        box_rect = pg.Rect(0, 0, 400, 70)
-                        box_rect.center = (SCREEN_WIDTH//2, 200 + i * 90)
+                        box_rect = pg.Rect(0, 0, 450, 80)
+                        box_rect.center = (SCREEN_WIDTH//2, 200 + i * 95)
                         if box_rect.collidepoint(event.pos):
                             self.selected_char_index = i
                             # ถ้าคลิกซ้ำอันเดิมหรือคลิกเลือกแล้วไปต่อ
@@ -188,9 +206,14 @@ class Game:
                         self.game_state = "CHAR_SELECT"
                 
                 if event.type == pg.MOUSEBUTTONDOWN:
-                    # ตรวจสอบการคลิกเลือกอาวุธ (ต้องบวกค่า scroll ด้วย)
+                    # คำนวณตำแหน่งเริ่มต้นของ Container เพื่อให้ตรงกับหน้า draw
+                    container_w = 650
+                    start_x = (SCREEN_WIDTH - container_w) // 2
+                    weapon_x = start_x + 250
+                    
+                    # ตรวจสอบการคลิกเลือกอาวุธ (ใช้ตำแหน่งใหม่ที่จัดกลาง)
                     for i in range(len(self.available_weapons)):
-                        btn_rect = pg.Rect(SCREEN_WIDTH//2 - 200, 200 + i * 100 + self.weapon_scroll_y, 400, 80)
+                        btn_rect = pg.Rect(weapon_x, 200 + i * 100 + self.weapon_scroll_y, 400, 80)
                         if btn_rect.collidepoint(event.pos):
                             if i in self.selected_weapon_indices:
                                 self.selected_weapon_indices.remove(i)
@@ -199,7 +222,7 @@ class Game:
                     
                     # ปุ่ม Start หลังเลือกครบ
                     if len(self.selected_weapon_indices) == 2:
-                        start_rect = pg.Rect(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT - 100, 200, 60)
+                        start_rect = pg.Rect(SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT - 120, 300, 60)
                         if start_rect.collidepoint(event.pos):
                             self.reset_game()
 
@@ -349,9 +372,9 @@ class Game:
                 is_selected = (i == self.selected_char_index)
                 color = GREEN if is_selected else (150, 150, 150)
                 
-                # วาดกรอบเลือก
-                box_rect = pg.Rect(0, 0, 400, 70)
-                box_rect.center = (SCREEN_WIDTH//2, 200 + i * 90)
+                # วาดกรอบเลือก (ขยายขนาดขึ้นเล็กน้อยเพื่อให้ใส่รูปได้)
+                box_rect = pg.Rect(0, 0, 450, 80)
+                box_rect.center = (SCREEN_WIDTH//2, 200 + i * 95)
                 
                 if is_selected:
                     pg.draw.rect(self.screen, (0, 80, 0), box_rect, border_radius=10)
@@ -359,9 +382,17 @@ class Game:
                 else:
                     pg.draw.rect(self.screen, (40, 40, 45), box_rect, border_radius=10)
                 
+                # 1. วาดรูปตัวละคร Preview (ย่อลงเพื่อแสดงหน้าเลือกตัวละคร)
+                preview_img = pg.transform.smoothscale(self.char_previews[i], (60, 60))
+                img_rect = preview_img.get_rect(midleft=(box_rect.left + 20, box_rect.centery))
+                self.screen.blit(preview_img, img_rect)
+
+                # 2. วาดชื่อตัวละครถัดจากรูป
                 name_text = char.__name__
                 char_text = self.btn_font.render(name_text, True, color)
-                self.screen.blit(char_text, char_text.get_rect(center=box_rect.center))
+                # วาดชื่อขยับไปทางขวารูป
+                text_rect = char_text.get_rect(midleft=(img_rect.right + 20, box_rect.centery))
+                self.screen.blit(char_text, text_rect)
             
             hint = self.ui_font.render("ARROWS to switch • ENTER to select weapons • ESC for menu", True, (180, 180, 180))
             self.screen.blit(hint, hint.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 50)))
@@ -371,13 +402,35 @@ class Game:
             title = self.btn_font.render("SELECT 2 WEAPONS", True, WHITE)
             self.screen.blit(title, title.get_rect(center=(SCREEN_WIDTH//2, 80)))
 
+            # --- คำนวณการจัดกึ่งกลาง Container ---
+            container_w = 650 
+            start_x = (SCREEN_WIDTH - container_w) // 2
+            char_x = start_x + 100
+            weapon_x = start_x + 250
+            # ----------------------------------
+
+            # --- วาดตัวละครที่เลือกไว้ด้านซ้ายของกลุ่ม ---
+            char_img = pg.transform.smoothscale(self.char_previews[self.selected_char_index], (140, 140))
+            char_rect = char_img.get_rect(center=(char_x, SCREEN_HEIGHT//2 - 40))
+            
+            bg_rect = pg.Rect(0, 0, 170, 210)
+            bg_rect.center = (char_x, SCREEN_HEIGHT//2 - 20)
+            pg.draw.rect(self.screen, (40, 40, 45), bg_rect, border_radius=15)
+            pg.draw.rect(self.screen, GREEN, bg_rect, width=3, border_radius=15)
+            self.screen.blit(char_img, char_rect)
+            
+            char_name = self.available_chars[self.selected_char_index].__name__
+            name_surf = self.ui_font.render(char_name, True, GREEN)
+            self.screen.blit(name_surf, name_surf.get_rect(center=(char_x, char_rect.bottom + 30)))
+
+            # --- วาดรายการอาวุธด้านขวาของกลุ่ม ---
             for i, weapon in enumerate(self.available_weapons):
                 is_selected = (i in self.selected_weapon_indices)
                 color = GREEN if is_selected else WHITE
                 
-                box_rect = pg.Rect(SCREEN_WIDTH//2 - 200, 200 + i * 100 + self.weapon_scroll_y, 400, 80)
+                # ใช้ weapon_x แทนการใช้ SCREEN_WIDTH//2
+                box_rect = pg.Rect(weapon_x, 200 + i * 100 + self.weapon_scroll_y, 400, 80)
                 
-                # แสดงแค่ส่วนที่อยู่ในพื้นที่เลือก (Optional clipping but simple translation for now)
                 if box_rect.bottom < 150 or box_rect.top > SCREEN_HEIGHT - 150:
                     continue
                 select_num = ""

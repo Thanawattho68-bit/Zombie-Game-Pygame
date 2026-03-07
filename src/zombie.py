@@ -11,32 +11,13 @@ class Zombie(BaseEntity):
         super().__init__(x, y, hp, speed, entity, size=size)
         self.attack_damage = attack_damage
         self.pos = pg.math.Vector2(x, y)
-        self.sound_folder = sound_folder
-        self._load_sounds()
-        self.next_idle_sound_time = pg.time.get_ticks() + random.randint(2000, 8000)
-
-    def _load_sounds(self):
-        self.sounds = {"idle": [], "death": [], "damage": []}
-        if not os.path.exists(self.sound_folder):
-            print(f"Warning: Zombie sound folder not found '{self.sound_folder}'")
-            return
-            
-        for f in os.listdir(self.sound_folder):
-            if f.endswith(('.wav', '.ogg', '.mp3')):
-                for s_type in self.sounds.keys():
-                    if f.startswith(s_type):
-                        try:
-                            snd = pg.mixer.Sound(os.path.join(self.sound_folder, f))
-                            self.sounds[s_type].append(snd)
-                        except Exception as e:
-                            print(f"Warning: Could not load zombie sound '{f}': {e}")
+        self._load_sounds(sound_folder, ZOMBIE_VOLUME, ["idle", "death", "damage"])
 
     def spawn(self):
         pass
 
     def play_sound(self, sound_type):
-        if hasattr(self, 'sounds') and sound_type in self.sounds and self.sounds[sound_type]:
-            random.choice(self.sounds[sound_type]).play()
+        super().play_sound(sound_type) # เรียกใช้จากเบสเอนทิตี้
 
     def update(self, *args, **kwargs):
         player_pos = kwargs.get('player_pos')
@@ -52,11 +33,8 @@ class Zombie(BaseEntity):
                 self.pos += direction
                 self.rect.center = (self.pos.x, self.pos.y)
 
-        # สุ่มเล่นเสียง Idle
-        now = pg.time.get_ticks()
-        if now >= self.next_idle_sound_time:
-            self.play_sound("idle")
-            self.next_idle_sound_time = now + random.randint(3000, 10000)
+        # จัดการเสียง Idle โดยใช้เบสเอนทิตี้
+        self.handle_idle_sound(3000, 10000)
 
     def attack(self, target=None):
         if target and self.rect.colliderect(target.rect):

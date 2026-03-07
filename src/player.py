@@ -16,32 +16,13 @@ class Player(BaseEntity):
         super().__init__(x, y, hp, speed, img, size=(50, 50))
         
         self.weapon = weapon_class(x, y) 
-        self.sound_folder = sound_folder
-        self._load_sounds()
-
-    def _load_sounds(self):
-        # โหลดเสียงโดยใช้ prefix
-        self.sounds = {"damage": [], "death": [], "reload": []}
-        if not os.path.exists(self.sound_folder):
-            # ไม่ต้องปริ้น Warning รัวๆ ถ้าโฟลเดอร์ไม่มี แค่ข้ามไปพอ
-            return
-            
-        for f in os.listdir(self.sound_folder):
-            if f.endswith(('.wav', '.ogg', '.mp3')):
-                for s_type in self.sounds.keys():
-                    if f.startswith(s_type):
-                        try:
-                            snd = pg.mixer.Sound(os.path.join(self.sound_folder, f))
-                            self.sounds[s_type].append(snd)
-                        except Exception as e:
-                            print(f"Warning: Could not load player sound '{f}': {e}")
+        self._load_sounds(sound_folder, PLAYER_VOLUME, ["damage", "death", "reload", "idle"])
 
     def spawn(self):
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
     def play_sound(self, sound_type):
-        if hasattr(self, 'sounds') and sound_type in self.sounds and self.sounds[sound_type]:
-            random.choice(self.sounds[sound_type]).play()
+        super().play_sound(sound_type)
 
     def reload_weapon(self):
         if self.weapon.reload():
@@ -65,29 +46,32 @@ class Player(BaseEntity):
         self.rect.clamp_ip(pg.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
         self.weapon.update(self.rect.center)
 
+        # จัดการเสียง Idle (Player พูด) โดยใช้เบสเอนทิตี้
+        self.handle_idle_sound(10000, 20000)
+
     def attack(self, target=None):
         return self.weapon.pull_trigger()
 
 class Soldier(Player):
+    BASE_PATH = "assets/character/player/Soldier"
     def __init__(self, x, y):
-        folder = "assets/character/player/Soldier"
-        super().__init__(x, y, 120, 5, f"{folder}/image", f"{folder}/sound", weapon_class=M16)
+        super().__init__(x, y, 120, 5, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=M16)
         self.char_name = "Soldier"
 
 class Scout(Player):
+    BASE_PATH = "assets/character/player/Scout"
     def __init__(self, x, y):
-        folder = "assets/character/player/Scout"
-        super().__init__(x, y, 80, 7, f"{folder}/image", f"{folder}/sound", weapon_class=M16)
+        super().__init__(x, y, 80, 7, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=M16)
         self.char_name = "Scout"
 
 class Defender(Player):
+    BASE_PATH = "assets/character/player/Defender"
     def __init__(self, x, y):
-        folder = "assets/character/player/Defender"
-        super().__init__(x, y, 200, 3.5, f"{folder}/image", f"{folder}/sound", weapon_class=M16)
+        super().__init__(x, y, 200, 3.5, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=M16)
         self.char_name = "Defender"
 
 class Naoya(Player):
+    BASE_PATH = "assets/character/player/Naoya"
     def __init__(self, x, y):
-        folder = "assets/character/player/Naoya"
-        super().__init__(x, y, 50, 50, f"{folder}/image", f"{folder}/sound", weapon_class=M16)
+        super().__init__(x, y, 50, 50, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=M16)
         self.char_name = "Naoya"

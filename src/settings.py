@@ -21,6 +21,8 @@ PLAYER_HP = 100
 
 # Sound Settings
 SHOOT_VOLUME = 0.2
+ZOMBIE_VOLUME = 1
+PLAYER_VOLUME = 1
 
 # Keys
 WALK_UP = pg.K_w

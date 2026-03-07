@@ -50,8 +50,7 @@ class BaseWeapon(pg.sprite.Sprite):
                                 try:
                                     snd_obj = pg.mixer.Sound(os.path.join(base_snd_path, f))
                                     # ลดความดังเสียงปืนเริ่มต้นไม่ให้หูแตก อ้างอิงจาก settings.py
-                                    if s_type == "shoot":
-                                        snd_obj.set_volume(SHOOT_VOLUME)
+                                    snd_obj.set_volume(SHOOT_VOLUME)
                                     self.sounds[s_type].append(snd_obj)
                                 except Exception as e:
                                     print(f"Warning: Could not load weapon sound '{f}': {e}")
@@ -69,19 +68,17 @@ class BaseWeapon(pg.sprite.Sprite):
     def play_sound(self, sound_type):
         if hasattr(self, 'sounds') and sound_type in self.sounds and self.sounds[sound_type]:
             # เอาเสียงเก่าให้หยุดก่อน (ถ้าเป็นเสียงปืนกระบอกเดียวกันรัวๆ) ป้องกันเสียงซ้อนทับจนความดังทะลุหลอด
-            if sound_type == "shoot":
-                prev_channel = getattr(self, '_current_shoot_channel', None)
-                if prev_channel and prev_channel.get_busy():
-                    prev_channel.stop()
+            prev_channel = getattr(self, '_current_sound_channel', None)
+            if prev_channel and prev_channel.get_busy():
+                prev_channel.stop()
                     
             snd = random.choice(self.sounds[sound_type])
             channel = snd.play()
             
             # บังคับความดังทับลงบน Channel เพื่อรับประกัน 100% ว่าเบาแน่นอน
-            if sound_type == "shoot":
-                self._current_shoot_channel = channel
-                if channel:
-                    channel.set_volume(SHOOT_VOLUME)
+            self._current_sound_channel = channel
+            if channel:
+                channel.set_volume(SHOOT_VOLUME)
 
     def update(self, *args, **kwargs):
         # เช็คว่ากำลัง Reload อยู่หรือเปล่า
