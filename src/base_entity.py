@@ -33,6 +33,10 @@ class BaseEntity(ABC, pg.sprite.Sprite):
         self.sounds = {}
         self.sound_folder = ""
         self.next_idle_sound_time = 0
+        self.next_narrate_time = 0 # เพิ่มตัวแปรคุมจังหวะ narrate
+        self.current_channel = None
+        self.current_sound_type = ""
+        self.narrate_played = False
     
     @abstractmethod
     def spawn(self):
@@ -55,7 +59,9 @@ class BaseEntity(ABC, pg.sprite.Sprite):
                     if f.startswith(s_type):
                         try:
                             snd = pg.mixer.Sound(os.path.join(sound_folder, f))
-                            snd.set_volume(volume)
+                            # ใช้ระดับเสียงตามประเภท
+                            vol = NARRATE_VOLUME if s_type == "narrate" else volume
+                            snd.set_volume(vol)
                             self.sounds[s_type].append(snd)
                         except Exception as e:
                             print(f"Warning: Could not load sound '{f}' for {self.__class__.__name__}: {e}")
@@ -66,9 +72,49 @@ class BaseEntity(ABC, pg.sprite.Sprite):
             for snd in self.sounds[sound_type]:
                 snd.set_volume(max(0.0, min(1.0, volume)))
 
+    @property
+    def sound_is_play(self):
+        """เช็คว่าตัวละครนี้กำลังเล่นเสียงอยู่หรือไม่"""
+        return self.current_channel is not None and self.current_channel.get_busy()
+
     def play_sound(self, sound_type):
+        # 1. จัดการเรื่อง narrate (เล่นได้แค่ครั้งเดียวต่อ match)
+        if sound_type == "narrate":
+            if self.narrate_played:
+                return
+            self.narrate_played = True
+
+        # 2. กฎลำดับความสำคัญ (Precedence Logic)
+        if sound_type == "death":
+            # กฎ: Death หยุดทุกเสียงที่กำลังเล่นอยู่
+            if self.sound_is_play:
+                self.current_channel.stop()
+        elif sound_type in ["damage", "shoot"]:
+            # กฎ: Damage และ Shoot เล่นทับกับเสียงอื่นได้เลย (Overlap)
+            if sound_type in self.sounds and self.sounds[sound_type]:
+                random.choice(self.sounds[sound_type]).play()
+            return # จบการทำงานตรงนี้เลย ไม่ส่งผลต่อ current_channel
+        else:
+            # เสียง Action ทั่วไป (idle, reload, ฯลฯ)
+            if self.sound_is_play:
+                # 1. กฎ: ถ้ากำลังเล่น Narrate อยู่ ห้ามเสียง Action ทั่วไปมาขัด
+                if self.current_sound_type == "narrate":
+                    return
+                
+                # 2. กฎใหม่: Mutually Exclusive (idle และ reload ห้ามเล่นแทรกกัน ใครมาก่อนได้เล่นก่อน)
+                # ถ้ากำลังเล่น idle อยู่ จะเริ่ม reload ไม่ได้ หรือกำลัง reload อยู่ จะเริ่ม idle ไม่ได้
+                if self.current_sound_type in ["idle", "reload"] and sound_type in ["idle", "reload"]:
+                    return
+                
+                # 3. กฎ Action อื่นๆ: ถ้าไม่ใช่กลุ่ม idle/reload (และไม่ใช่ Narrate) ให้หยุดของเดิมก่อนเริ่มอันใหม่
+                self.current_channel.stop()
+        
+        # 3. เริ่มเล่นเสียงใหม่และบันทึกสถานะ (ยกเว้นกลุ่ม Overlap ที่แยกไปแล้ว)
         if sound_type in self.sounds and self.sounds[sound_type]:
-            random.choice(self.sounds[sound_type]).play()
+            ch = random.choice(self.sounds[sound_type]).play()
+            if ch:
+                self.current_channel = ch
+                self.current_sound_type = sound_type
 
     def handle_idle_sound(self, min_delay_ms, max_delay_ms):
         #จัดการการเล่นเสียง Idle ตามช่วงเวลาที่กำหนด
@@ -79,6 +125,18 @@ class BaseEntity(ABC, pg.sprite.Sprite):
         if now >= self.next_idle_sound_time:
             self.play_sound("idle")
             self.next_idle_sound_time = now + random.randint(min_delay_ms, max_delay_ms)
+
+    def handle_narrate_sound(self, min_delay_ms, max_delay_ms):
+        """สุ่มหาจังหวะพูดบรรยาย (Narrate) เพียงครั้งเดียวใน match"""
+        if self.narrate_played: # ถ้าเคยเล่นไปแล้วไม่ต้องทำอะไร
+            return
+            
+        now = pg.time.get_ticks()
+        if self.next_narrate_time == 0: # ตั้งเวลาสุ่มครั้งแรก
+            self.next_narrate_time = now + random.randint(min_delay_ms, max_delay_ms)
+            
+        if now >= self.next_narrate_time:
+            self.play_sound("narrate")
 
     @abstractmethod
     def attack(self, target=None):

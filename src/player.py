@@ -16,12 +16,15 @@ class Player(BaseEntity):
         super().__init__(x, y, hp, speed, img, size=(50, 50))
         
         self.weapon = weapon_class(x, y) 
-        self._load_sounds(sound_folder, PLAYER_VOLUME, ["damage", "death", "reload", "idle"])
+        self._load_sounds(sound_folder, PLAYER_VOLUME, ["damage", "death", "reload", "idle", "narrate"])
 
     def spawn(self):
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
     def play_sound(self, sound_type):
+        if sound_type == "death":
+            # ถ้าเป็น Player ตาย ให้หยุดเสียงทุกอย่างในเกมทันที (World Stop)
+            pg.mixer.stop()
         super().play_sound(sound_type)
 
     def reload_weapon(self):
@@ -48,6 +51,8 @@ class Player(BaseEntity):
 
         # จัดการเสียง Idle (Player พูด) โดยใช้เบสเอนทิตี้
         self.handle_idle_sound(10000, 20000)
+        # จัดการเสียง Narrate (สุ่มพูดภายใน 10-60 วินาทีแรกของแมตช์)
+        self.handle_narrate_sound(10000, 60000)
 
     def attack(self, target=None):
         return self.weapon.pull_trigger()

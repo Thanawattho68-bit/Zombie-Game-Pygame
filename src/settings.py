@@ -15,6 +15,11 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 DARK_GRAY = (50, 50, 50)
 
+# UI Colors
+BG_COLOR = (20, 20, 25)
+PRIMARY_COLOR = (0, 255, 100) # สีเขียวนีออน
+SECONDARY_COLOR = (150, 150, 150) # สีเทาสำหรับตอนไม่เลือก
+
 # Player Settings
 PLAYER_SPEED = 5
 PLAYER_HP = 100
@@ -23,6 +28,7 @@ PLAYER_HP = 100
 SHOOT_VOLUME = 0.2
 ZOMBIE_VOLUME = 1
 PLAYER_VOLUME = 1
+NARRATE_VOLUME = 1.0
 
 # Keys
 WALK_UP = pg.K_w
@@ -33,3 +39,7 @@ SHOOT = pg.K_SPACE
 RELOAD = pg.K_r
 SWITCH_WEAPON_1 = pg.K_1
 SWITCH_WEAPON_2 = pg.K_2
+
+# Spawn Settings (Time in milliseconds)
+SPAWN_DELAY_MIN = 500
+SPAWN_DELAY_MAX = 2000

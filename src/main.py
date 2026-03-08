@@ -11,6 +11,7 @@ from base_weapon import Glock, M16
 class Game:
     def __init__(self):
         pg.init()
+        pg.mixer.set_num_channels(64)
         self.screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pg.display.set_caption("ZOMBIE GAME NAJA")
         self.clock = pg.time.Clock()
@@ -74,6 +75,7 @@ class Game:
         self.selected_weapon_indices = [] # จะเก็บ index ของอาวุธที่เลือก (สูงสุด 2 อัน)
         self.weapon_scroll_y = 0
         
+        self.selected_mode_index = 0
         self.game_state = "MAIN_MENU"
         
         # Initialize attributes to avoid AttributeError in draw()
@@ -85,6 +87,8 @@ class Game:
         self.player = None
         self.last_attacked = 0
         self.zombie_attack_delay = 500
+        self.zombie_spawn_queue = []
+        self.next_spawn_time = 0
 
     def reset_game(self):
         self.game_state = "PLAYING"
@@ -95,9 +99,11 @@ class Game:
         self.all_sprites = pg.sprite.Group()
         self.zombies = pg.sprite.Group()
         self.bullets = pg.sprite.Group()
+        self.zombie_spawn_queue = []
         
         char_class = self.available_chars[self.selected_char_index]
         self.player = char_class(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)
+        self.player.spawn()
         
         # ติดตั้งอาวุธที่เลือกอันแรกเป็นอาวุธเริ่มต้น
         if self.selected_weapon_indices:
@@ -114,9 +120,12 @@ class Game:
         if new_zombies is None:
             self.game_state = "GAMEOVER" 
         else:
-            for z in new_zombies:
-                self.all_sprites.add(z)
-                self.zombies.add(z)
+            # เก็บซอมบี้ที่ต้องเกิดใส่ Queue ไว้ ไม่แอดลงจอทันที
+            self.zombie_spawn_queue = new_zombies
+            # สลับลำดับเพื่อให้ซอมบี้แต่ละชนิดปนกัน
+            random.shuffle(self.zombie_spawn_queue)
+            # ตั้งเวลาเกิดตัวแรก
+            self.next_spawn_time = pg.time.get_ticks() + random.randint(SPAWN_DELAY_MIN, SPAWN_DELAY_MAX)
 
     def events(self):
         for event in pg.event.get():
@@ -131,13 +140,13 @@ class Game:
                         self.main_menu_index = (self.main_menu_index + 1) % 2
                     elif event.key == pg.K_RETURN:
                         if self.main_menu_index == 0:
-                            self.game_state = "CHAR_SELECT"
+                            self.game_state = "MODE_SELECT"
                         else:
                             self.running = False
 
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if self.start_btn_rect.collidepoint(event.pos):
-                        self.game_state = "CHAR_SELECT"
+                        self.game_state = "MODE_SELECT"
                     elif self.exit_btn_rect.collidepoint(event.pos):
                         self.running = False
                 
@@ -148,6 +157,32 @@ class Game:
                 elif self.exit_btn_rect.collidepoint(mouse_pos):
                     self.main_menu_index = 1
                     
+            elif self.game_state == "MODE_SELECT":
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_UP:
+                        self.selected_mode_index = (self.selected_mode_index - 1) % len(self.difficulty_map)
+                    elif event.key == pg.K_DOWN:
+                        self.selected_mode_index = (self.selected_mode_index + 1) % len(self.difficulty_map)
+                    elif event.key == pg.K_RETURN:
+                        mode_name = list(self.difficulty_map.keys())[self.selected_mode_index]
+                        self.difficulty_strategy = self.difficulty_map[mode_name]()
+                        self.zombie_factory = zombie.ZombieFactory(self.difficulty_strategy)
+                        self.game_state = "CHAR_SELECT"
+                    elif event.key == pg.K_ESCAPE:
+                        self.game_state = "MAIN_MENU"
+                
+                if event.type == pg.MOUSEBUTTONDOWN:
+                    mode_names = list(self.difficulty_map.keys())
+                    for i in range(len(mode_names)):
+                        box_rect = pg.Rect(0, 0, 450, 80)
+                        box_rect.center = (SCREEN_WIDTH//2, 200 + i * 95)
+                        if box_rect.collidepoint(event.pos):
+                            self.selected_mode_index = i
+                            mode_name = mode_names[i]
+                            self.difficulty_strategy = self.difficulty_map[mode_name]()
+                            self.zombie_factory = zombie.ZombieFactory(self.difficulty_strategy)
+                            self.game_state = "CHAR_SELECT"
+
             elif self.game_state == "GAMEOVER":
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if self.restart_button_rect.collidepoint(event.pos):
@@ -164,7 +199,7 @@ class Game:
                         self.weapon_scroll_y = 0 # รีเซ็ต scroll
                         self.game_state = "WEAPON_SELECT"
                     elif event.key == pg.K_ESCAPE:
-                        self.game_state = "MAIN_MENU"
+                        self.game_state = "MODE_SELECT"
                 
                 if event.type == pg.MOUSEBUTTONDOWN:
                     for i in range(len(self.available_chars)):
@@ -246,6 +281,7 @@ class Game:
                     
                     if event.key == pg.K_ESCAPE:
                         self.game_state = "PAUSED"
+                        pg.mixer.pause() # หยุดเสียงชั่วคราว
 
             elif self.game_state == "PAUSED":
                 if event.type == pg.KEYDOWN:
@@ -254,7 +290,9 @@ class Game:
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if self.continue_btn_rect.collidepoint(event.pos):
                         self.game_state = "PLAYING"
+                        pg.mixer.unpause() # เล่นสีที่ค้างไว้ต่อ
                     elif self.return_btn_rect.collidepoint(event.pos):
+                        pg.mixer.stop() # ล้างเสียงทั้งหมดทิ้ง
                         self.game_state = "MAIN_MENU"
 
         if self.game_state == "PLAYING":
@@ -292,9 +330,18 @@ class Game:
                 if self.player.hp <= 0:
                     self.game_state = "GAMEOVER"
 
-            if len(self.zombies) == 0:
+            if len(self.zombies) == 0 and len(self.zombie_spawn_queue) == 0:
                 self.current_wave += 1
                 self.spawn_wave()
+
+            # --- ระบบ Spawn ซอมบี้แบบสุ่มจังหวะ ---
+            if self.zombie_spawn_queue:
+                if now >= self.next_spawn_time:
+                    z = self.zombie_spawn_queue.pop()
+                    self.all_sprites.add(z)
+                    self.zombies.add(z)
+                    # สุ่มเวลาเกิดตัวต่อไป
+                    self.next_spawn_time = now + random.randint(SPAWN_DELAY_MIN, SPAWN_DELAY_MAX)
 
     def draw_button(self, rect, text, base_color, hover_color, text_color):
         mouse_pos = pg.mouse.get_pos()
@@ -321,7 +368,7 @@ class Game:
 
 
     def draw(self):
-        self.screen.fill(BLACK)
+        self.screen.fill(BG_COLOR)
 
         if self.game_state == "MAIN_MENU":
             self.screen.fill((20, 20, 25)) # สีน้ำเงินเข้มจัดๆ แบบหน้าเลือกตัวละคร
@@ -347,14 +394,16 @@ class Game:
 
             for item in menu_items:
                 is_selected = (self.main_menu_index == item["idx"])
-                color = GREEN if is_selected else (150, 150, 150)
+                color = PRIMARY_COLOR if is_selected else SECONDARY_COLOR
                 rect = item["rect"]
                 
                 if is_selected:
-                    pg.draw.rect(self.screen, (0, 80, 0), rect, border_radius=10)
-                    pg.draw.rect(self.screen, GREEN, rect, width=3, border_radius=10)
+                    # ใช้สีพื้นหลังที่เข้มขึ้นจาก PRIMARY_COLOR (หาร 4)
+                    pg.draw.rect(self.screen, (PRIMARY_COLOR[0]//4, PRIMARY_COLOR[1]//4, PRIMARY_COLOR[2]//4), rect, border_radius=10)
+                    pg.draw.rect(self.screen, PRIMARY_COLOR, rect, width=3, border_radius=10)
                 else:
-                    pg.draw.rect(self.screen, (40, 40, 45), rect, border_radius=10)
+                    # ใช้สีพื้นหลังที่มืดกว่าพื้นหลังหลักเล็กน้อย
+                    pg.draw.rect(self.screen, (35, 35, 40), rect, border_radius=10)
                 
                 btn_text = self.btn_font.render(item["text"], True, color)
                 self.screen.blit(btn_text, btn_text.get_rect(center=rect.center))
@@ -362,25 +411,49 @@ class Game:
             hint = self.ui_font.render("ARROWS to navigate • ENTER to select", True, (180, 180, 180))
             self.screen.blit(hint, hint.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 50)))
 
+        elif self.game_state == "MODE_SELECT":
+            title = self.btn_font.render("GAME MODE", True, WHITE)
+            title_rect = title.get_rect(center=(SCREEN_WIDTH//2, 80))
+            self.screen.blit(title, title_rect)
+
+            mode_names = list(self.difficulty_map.keys())
+            for i, mode_name in enumerate(mode_names):
+                is_selected = (i == self.selected_mode_index)
+                color = PRIMARY_COLOR if is_selected else SECONDARY_COLOR
+                
+                box_rect = pg.Rect(0, 0, 450, 80)
+                box_rect.center = (SCREEN_WIDTH//2, 200 + i * 95)
+                
+                if is_selected:
+                    pg.draw.rect(self.screen, (PRIMARY_COLOR[0]//4, PRIMARY_COLOR[1]//4, PRIMARY_COLOR[2]//4), box_rect, border_radius=10)
+                    pg.draw.rect(self.screen, PRIMARY_COLOR, box_rect, width=3, border_radius=10)
+                else:
+                    pg.draw.rect(self.screen, (35, 35, 40), box_rect, border_radius=10)
+                
+                mode_text = self.btn_font.render(mode_name.upper(), True, color)
+                self.screen.blit(mode_text, mode_text.get_rect(center=box_rect.center))
+            
+            hint = self.ui_font.render("ARROWS to switch • ENTER to select • ESC for menu", True, (180, 180, 180))
+            self.screen.blit(hint, hint.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 50)))
+
         elif self.game_state == "CHAR_SELECT":
-            self.screen.fill((20, 20, 25)) # สีน้ำเงินเข้มจัดๆ
             title = self.btn_font.render("SELECT YOUR CHARACTER", True, WHITE)
             title_rect = title.get_rect(center=(SCREEN_WIDTH//2, 80))
             self.screen.blit(title, title_rect)
 
             for i, char in enumerate(self.available_chars):
                 is_selected = (i == self.selected_char_index)
-                color = GREEN if is_selected else (150, 150, 150)
+                color = PRIMARY_COLOR if is_selected else SECONDARY_COLOR
                 
                 # วาดกรอบเลือก (ขยายขนาดขึ้นเล็กน้อยเพื่อให้ใส่รูปได้)
                 box_rect = pg.Rect(0, 0, 450, 80)
                 box_rect.center = (SCREEN_WIDTH//2, 200 + i * 95)
                 
                 if is_selected:
-                    pg.draw.rect(self.screen, (0, 80, 0), box_rect, border_radius=10)
-                    pg.draw.rect(self.screen, GREEN, box_rect, width=3, border_radius=10)
+                    pg.draw.rect(self.screen, (PRIMARY_COLOR[0]//4, PRIMARY_COLOR[1]//4, PRIMARY_COLOR[2]//4), box_rect, border_radius=10)
+                    pg.draw.rect(self.screen, PRIMARY_COLOR, box_rect, width=3, border_radius=10)
                 else:
-                    pg.draw.rect(self.screen, (40, 40, 45), box_rect, border_radius=10)
+                    pg.draw.rect(self.screen, (35, 35, 40), box_rect, border_radius=10)
                 
                 # 1. วาดรูปตัวละคร Preview (ย่อลงเพื่อแสดงหน้าเลือกตัวละคร)
                 preview_img = pg.transform.smoothscale(self.char_previews[i], (60, 60))
@@ -398,7 +471,6 @@ class Game:
             self.screen.blit(hint, hint.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 50)))
 
         elif self.game_state == "WEAPON_SELECT":
-            self.screen.fill((25, 20, 20)) # สีน้ำตาลแดงมืดๆ
             title = self.btn_font.render("SELECT 2 WEAPONS", True, WHITE)
             self.screen.blit(title, title.get_rect(center=(SCREEN_WIDTH//2, 80)))
 
@@ -415,18 +487,18 @@ class Game:
             
             bg_rect = pg.Rect(0, 0, 170, 210)
             bg_rect.center = (char_x, SCREEN_HEIGHT//2 - 20)
-            pg.draw.rect(self.screen, (40, 40, 45), bg_rect, border_radius=15)
-            pg.draw.rect(self.screen, GREEN, bg_rect, width=3, border_radius=15)
+            pg.draw.rect(self.screen, (35, 35, 40), bg_rect, border_radius=15)
+            pg.draw.rect(self.screen, PRIMARY_COLOR, bg_rect, width=3, border_radius=15)
             self.screen.blit(char_img, char_rect)
             
             char_name = self.available_chars[self.selected_char_index].__name__
-            name_surf = self.ui_font.render(char_name, True, GREEN)
+            name_surf = self.ui_font.render(char_name, True, PRIMARY_COLOR)
             self.screen.blit(name_surf, name_surf.get_rect(center=(char_x, char_rect.bottom + 30)))
 
             # --- วาดรายการอาวุธด้านขวาของกลุ่ม ---
             for i, weapon in enumerate(self.available_weapons):
                 is_selected = (i in self.selected_weapon_indices)
-                color = GREEN if is_selected else WHITE
+                color = PRIMARY_COLOR if is_selected else WHITE
                 
                 # ใช้ weapon_x แทนการใช้ SCREEN_WIDTH//2
                 box_rect = pg.Rect(weapon_x, 200 + i * 100 + self.weapon_scroll_y, 400, 80)
@@ -436,17 +508,17 @@ class Game:
                 select_num = ""
                 if is_selected:
                     select_num = f"#{self.selected_weapon_indices.index(i) + 1} "
-                    pg.draw.rect(self.screen, (0, 60, 0), box_rect, border_radius=10)
-                    pg.draw.rect(self.screen, GREEN, box_rect, width=3, border_radius=10)
+                    pg.draw.rect(self.screen, (PRIMARY_COLOR[0]//4, PRIMARY_COLOR[1]//4, PRIMARY_COLOR[2]//4), box_rect, border_radius=10)
+                    pg.draw.rect(self.screen, PRIMARY_COLOR, box_rect, width=3, border_radius=10)
                 else:
-                    pg.draw.rect(self.screen, (45, 40, 40), box_rect, border_radius=10)
+                    pg.draw.rect(self.screen, (35, 35, 40), box_rect, border_radius=10)
                 
                 weapon_text = self.btn_font.render(f"{select_num}{weapon['name']}", True, color)
                 self.screen.blit(weapon_text, weapon_text.get_rect(center=box_rect.center))
             
             if len(self.selected_weapon_indices) == 2:
                 start_btn = pg.Rect(SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT - 120, 300, 60)
-                self.draw_button(start_btn, "START MISSION", GREEN, (100, 255, 100), BLACK)
+                self.draw_button(start_btn, "START MISSION", PRIMARY_COLOR, (100, 255, 100), BLACK)
             
             hint = self.ui_font.render("Click to select/deselect • Need 2 weapons to start • ESC to go back", True, (180, 180, 180))
             self.screen.blit(hint, hint.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 40)))
@@ -471,7 +543,7 @@ class Game:
                 self.screen.blit(overlay, (0,0))
                 
                 msg_text = "MISSION FAILED" if (self.player and self.player.hp <= 0) else "MISSION ACCOMPLISHED"
-                msg_color = RED if (self.player and self.player.hp <= 0) else GREEN
+                msg_color = RED if (self.player and self.player.hp <= 0) else PRIMARY_COLOR
                 msg = self.font.render(msg_text, True, msg_color)
                 self.screen.blit(msg, msg.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 80)))
                 
