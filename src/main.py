@@ -90,6 +90,21 @@ class Game:
         self.zombie_spawn_queue = []
         self.next_spawn_time = 0
 
+    def _setup_bgm(self):
+        """ตั้งค่าและเล่นเพลงประกอบพื้นหลัง (BGM)"""
+        bgm_path = "assets/sound/bgm/bgm_1.mp3" # หรือ .wav, .ogg
+        try:
+            import os
+            if os.path.exists(bgm_path):
+                pg.mixer.music.load(bgm_path)
+                pg.mixer.music.set_volume(BGM_VOLUME)
+                # เล่นวนลูปไปเรื่อยๆ (-1 คือ infinite loop)
+                pg.mixer.music.play(-1)
+            else:
+                print(f"Warning: BGM file not found at '{bgm_path}'")
+        except Exception as e:
+            print(f"Warning: Could not play BGM: {e}")
+
     def reset_game(self):
         self.game_state = "PLAYING"
         self.current_wave = 1
@@ -105,20 +120,30 @@ class Game:
         self.player = char_class(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)
         self.player.spawn()
         
-        # ติดตั้งอาวุธที่เลือกอันแรกเป็นอาวุธเริ่มต้น
-        if self.selected_weapon_indices:
-            w1_class = self.available_weapons[self.selected_weapon_indices[0]]["class"]
+        # สร้าง weapon instance ทั้งหมดครั้งเดียว เก็บไว้ใช้ตลอดเกม
+        self.weapon_instances = []
+        for idx in self.selected_weapon_indices:
+            w_class = self.available_weapons[idx]["class"]
+            self.weapon_instances.append(w_class(self.player.rect.centerx, self.player.rect.centery))
+        
+        # ติดตั้งอาวุธแรกเป็นอาวุธเริ่มต้น
+        self.current_weapon_index = 0
+        if self.weapon_instances:
             self.player.weapon.kill() # เอาของเดิมจาก class ออก
-            self.player.weapon = w1_class(self.player.rect.centerx, self.player.rect.centery)
+            self.player.weapon = self.weapon_instances[0]
         
         self.all_sprites.add(self.player)
         self.all_sprites.add(self.player.weapon)
         self.spawn_wave()
+        
+        # เล่น BGM เมื่อเริ่มเกม
+        self._setup_bgm()
 
     def spawn_wave(self):
         new_zombies = self.zombie_factory.spawn_wave(self.current_wave)
         if new_zombies is None:
-            self.game_state = "GAMEOVER" 
+            self.game_state = "WIN"
+            pg.mixer.music.stop() # หยุด BGM เมื่อชนะ
         else:
             # เก็บซอมบี้ที่ต้องเกิดใส่ Queue ไว้ ไม่แอดลงจอทันที
             self.zombie_spawn_queue = new_zombies
@@ -184,6 +209,9 @@ class Game:
                             self.game_state = "CHAR_SELECT"
 
             elif self.game_state == "GAMEOVER":
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_ESCAPE:
+                        self.game_state = "MAIN_MENU"
                 if event.type == pg.MOUSEBUTTONDOWN:
                     if self.restart_button_rect.collidepoint(event.pos):
                         self.game_state = "MAIN_MENU"
@@ -267,16 +295,16 @@ class Game:
                         if event.key == RELOAD:
                             self.player.reload_weapon()
                         elif event.key == SWITCH_WEAPON_1:
-                            if len(self.selected_weapon_indices) >= 1:
-                                self.player.weapon.kill()
-                                w_class = self.available_weapons[self.selected_weapon_indices[0]]["class"]
-                                self.player.weapon = w_class(self.player.rect.centerx, self.player.rect.centery)
+                            if len(self.weapon_instances) >= 1 and self.current_weapon_index != 0:
+                                self.player.weapon.remove(self.all_sprites)
+                                self.current_weapon_index = 0
+                                self.player.weapon = self.weapon_instances[0]
                                 self.all_sprites.add(self.player.weapon)
                         elif event.key == SWITCH_WEAPON_2:
-                            if len(self.selected_weapon_indices) >= 2:
-                                self.player.weapon.kill()
-                                w_class = self.available_weapons[self.selected_weapon_indices[1]]["class"]
-                                self.player.weapon = w_class(self.player.rect.centerx, self.player.rect.centery)
+                            if len(self.weapon_instances) >= 2 and self.current_weapon_index != 1:
+                                self.player.weapon.remove(self.all_sprites)
+                                self.current_weapon_index = 1
+                                self.player.weapon = self.weapon_instances[1]
                                 self.all_sprites.add(self.player.weapon)
                     
                     if event.key == pg.K_ESCAPE:
@@ -292,7 +320,20 @@ class Game:
                         self.game_state = "PLAYING"
                         pg.mixer.unpause() # เล่นสีที่ค้างไว้ต่อ
                     elif self.return_btn_rect.collidepoint(event.pos):
-                        pg.mixer.stop() # ล้างเสียงทั้งหมดทิ้ง
+                        pg.mixer.stop() # ล้างเสียง SFX ทั้งหมดทิ้ง
+                        pg.mixer.music.stop() # หยุด BGM
+                        self.game_state = "MAIN_MENU"
+                    
+            elif self.game_state == "WIN":
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_ESCAPE:
+                        self.game_state = "MAIN_MENU"
+                        pg.mixer.stop() # ล้างเสียง SFX ทั้งหมดทิ้ง
+                        pg.mixer.music.stop() # หยุด BGM
+                if event.type == pg.MOUSEBUTTONDOWN:
+                    if self.return_btn_rect.collidepoint(event.pos):
+                        pg.mixer.stop() # ล้างเสียง SFX ทั้งหมดทิ้ง
+                        pg.mixer.music.stop() # หยุด BGM
                         self.game_state = "MAIN_MENU"
 
         if self.game_state == "PLAYING":
@@ -329,6 +370,7 @@ class Game:
                 
                 if self.player.hp <= 0:
                     self.game_state = "GAMEOVER"
+                    pg.mixer.music.stop() # หยุด BGM เมื่อตายแล้ว
 
             if len(self.zombies) == 0 and len(self.zombie_spawn_queue) == 0:
                 self.current_wave += 1
@@ -523,7 +565,7 @@ class Game:
             hint = self.ui_font.render("Click to select/deselect • Need 2 weapons to start • ESC to go back", True, (180, 180, 180))
             self.screen.blit(hint, hint.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT - 40)))
 
-        elif self.game_state == "PLAYING" or self.game_state == "GAMEOVER":
+        elif self.game_state in ("PLAYING", "GAMEOVER", "WIN"):
             self.screen.fill(DARK_GRAY)
             self.all_sprites.draw(self.screen)
             
@@ -539,15 +581,29 @@ class Game:
             
             if self.game_state == "GAMEOVER":
                 overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
-                overlay.fill((0, 0, 0, 200)) # มืดกว่าปกติ
+                overlay.fill((0, 0, 0, 200))
                 self.screen.blit(overlay, (0,0))
                 
-                msg_text = "MISSION FAILED" if (self.player and self.player.hp <= 0) else "MISSION ACCOMPLISHED"
-                msg_color = RED if (self.player and self.player.hp <= 0) else PRIMARY_COLOR
-                msg = self.font.render(msg_text, True, msg_color)
+                msg = self.font.render("MISSION FAILED", True, RED)
                 self.screen.blit(msg, msg.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 80)))
                 
+                score_text = self.btn_font.render(f"Score: {self.score}  |  Wave: {self.current_wave}", True, WHITE)
+                self.screen.blit(score_text, score_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 20)))
+                
                 self.draw_button(self.restart_button_rect, "MAIN MENU", (100, 100, 100), (150, 150, 150), BLACK)
+            
+            elif self.game_state == "WIN":
+                overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
+                overlay.fill((0, 0, 0, 180))
+                self.screen.blit(overlay, (0,0))
+                
+                msg = self.font.render("MISSION ACCOMPLISHED", True, PRIMARY_COLOR)
+                self.screen.blit(msg, msg.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 80)))
+                
+                score_text = self.btn_font.render(f"Score: {self.score}  |  Waves Cleared: {self.current_wave - 1}", True, WHITE)
+                self.screen.blit(score_text, score_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 20)))
+                
+                self.draw_button(self.restart_button_rect, "MAIN MENU", (40, 160, 40), (60, 220, 60), BLACK)
 
         elif self.game_state == "PAUSED":
             # วาดฉากหลังเกมแบบมัวๆ
