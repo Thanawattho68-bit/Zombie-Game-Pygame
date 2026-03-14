@@ -6,7 +6,7 @@ from settings import *
 import player
 import zombie
 import wave_difficulty
-from base_weapon import Glock, M16
+import base_weapon
 
 class Game:
     def __init__(self):
@@ -85,10 +85,7 @@ class Game:
         self.selected_char_index = 0
         self.main_menu_index = 0 # 0: Start, 1: Exit
         
-        self.available_weapons = [
-            {"name": "Glock 17", "class": Glock},
-            {"name": "M16 Rifle", "class": M16}
-        ]
+        self.available_weapons = base_weapon.BaseWeapon.__subclasses__()
         self.selected_weapon_indices = [] # จะเก็บ index ของอาวุธที่เลือก (สูงสุด 2 อัน)
         self.weapon_scroll_y = 0
         
@@ -140,7 +137,7 @@ class Game:
         # สร้าง weapon instance ทั้งหมดครั้งเดียว เก็บไว้ใช้ตลอดเกม
         self.weapon_instances = []
         for idx in self.selected_weapon_indices:
-            w_class = self.available_weapons[idx]["class"]
+            w_class = self.available_weapons[idx]
             self.weapon_instances.append(w_class(self.player.rect.centerx, self.player.rect.centery))
         
         # ติดตั้งอาวุธแรกเป็นอาวุธเริ่มต้น
@@ -685,7 +682,7 @@ class Game:
                 else:
                     pg.draw.rect(self.screen, (35, 35, 40), box_rect, border_radius=10)
                 
-                weapon_text = self.btn_font.render(f"{select_num}{weapon['name']}", True, color)
+                weapon_text = self.btn_font.render(f"{select_num}{weapon.__name__}", True, color)
                 self.screen.blit(weapon_text, weapon_text.get_rect(center=box_rect.center))
             
             if len(self.selected_weapon_indices) == 2:
@@ -705,7 +702,7 @@ class Game:
             self.screen.blit(stat_bar, (0, 0))
             
             if self.player:
-                stats_text = f'Wave: {self.current_wave}  |  {self.player.weapon.name}  |  HP: {self.player.hp}  |  Score: {self.score}  |  Ammo: {self.player.weapon.current_ammo}/{self.player.weapon.magazine_size}'
+                stats_text = f'Wave: {self.current_wave}  |  {type(self.player.weapon).__name__}  |  HP: {self.player.hp}  |  Score: {self.score}  |  Ammo: {self.player.weapon.current_ammo}/{self.player.weapon.magazine_size}'
                 stats_img = self.ui_font.render(stats_text, True, WHITE)
                 self.screen.blit(stats_img, (20, 15))
             
