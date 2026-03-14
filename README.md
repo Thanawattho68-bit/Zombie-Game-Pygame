@@ -1,6 +1,6 @@
 # 🧟‍♂️ Zombie Survival: 2D Top-Down Shooter (Pygame)
 
-เกมยิงซอมบี้มุมมองด้านบน (Top-down view) ที่พัฒนาด้วยภาษา Python และไลบรารี Pygame โดยเน้นการออกแบบด้วยหลักการ **Object-Oriented Programming (OOP)** และ **Design Patterns** เพื่อให้โค้ดสะอาดและขยายต่อได้ง่าย
+เกมยิงซอมบี้มุมมองด้านบน (Top-down view) ที่พัฒนาด้วยภาษา Python และไลบรารี Pygame 
 
 ---
 
@@ -46,14 +46,28 @@
 
 ## 🚀 วิธีเริ่มใช้งาน
 
-1. ติดตั้งไลบรารีที่จำเป็นผ่าน `requirements.txt`:
+1. **เตรียมสภาพแวดล้อม (Virtual Environment):**
+   - **Windows:**
+     ```bash
+     python -m venv .venv
+     .venv\Scripts\activate
+     ```
+   - **macOS/Linux:**
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
+
+2. **ติดตั้งไลบรารีที่จำเป็น:**
    ```bash
    pip install -r requirements.txt
    ```
-2. รันเกมผ่านไฟล์หลักในโฟลเดอร์ `src`:
+
+3. **รันเกม:**
    ```bash
    python src/main.py
    ```
+
 
 ---
 
