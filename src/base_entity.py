@@ -74,7 +74,7 @@ class BaseEntity(ABC, pg.sprite.Sprite):
 
     @property
     def sound_is_play(self):
-        """เช็คว่าตัวละครนี้กำลังเล่นเสียงอยู่หรือไม่"""
+        #เช็คว่าตัวละครนี้กำลังเล่นเสียงอยู่หรือไม่
         return self.current_channel is not None and self.current_channel.get_busy()
 
     def play_sound(self, sound_type):
