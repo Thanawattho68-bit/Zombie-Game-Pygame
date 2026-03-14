@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zombie-game-pygame"
+version = "1.0.0"
+description = "Zombie Survival: 2D Top-Down Shooter built with Pygame"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pygame>=2.5.0"
+]
