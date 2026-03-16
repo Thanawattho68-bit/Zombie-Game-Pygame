@@ -12,9 +12,9 @@ class Player(CombatEntity):
         super().__init__(x, y, hp, speed, img, size=(50, 50))
         
         self.weapon = weapon_class(x, y) 
-        self.sound = SoundComponent(self, sound_folder, PLAYER_VOLUME, ["damage", "death", "reload", "idle", "narrate"])
-        self.next_idle_sound_time = 0
-        self.next_narrate_time = 0
+        self.sound = SoundComponent(self, sound_folder, PLAYER_VOLUME, ["damage", "death", "reload", "idle"])
+        # สุ่มเวลาที่จะพูดครั้งแรก เพื่อไม่ให้พูดทันทีที่เริ่มเกม
+        self.next_idle_sound_time = pg.time.get_ticks() + random.randint(5000, 15000)
 
     def spawn(self):
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
@@ -23,19 +23,27 @@ class Player(CombatEntity):
         if self.weapon.reload():
             self.sound.play("reload")
 
+    def take_damage(self, damage):
+        self.hp -= damage
+        if self.sound:
+            self.sound.play("damage")
+        
+        if self.hp <= 0:
+            # ถ้าเป็น Player ตาย ให้หยุดเสียงทุกอย่างในเกม (ยกเว้นเพลงถ้าต้องการ แต่ pg.mixer.stop() จะหยุด SFX ทั้งหมด)
+            # เราหยุดก่อนที่จะเริ่มเล่นเสียง Death ของตัวเอง เพื่อให้เสียง Death ไม่โดนหยุดไปด้วย
+            pg.mixer.stop()
+            if self.sound:
+                self.sound.play("death")
+            self.kill()
+            return True
+        return False
+
     def handle_idle_sounds(self):
         now = pg.time.get_ticks()
         # Idle
-        if self.next_idle_sound_time == 0 or now >= self.next_idle_sound_time:
+        if now >= self.next_idle_sound_time:
              self.sound.play("idle")
              self.next_idle_sound_time = now + random.randint(10000, 20000)
-        
-        # Narrate
-        if not self.sound.narrate_played:
-            if self.next_narrate_time == 0:
-                self.next_narrate_time = now + random.randint(10000, 60000)
-            if now >= self.next_narrate_time:
-                self.sound.play("narrate")
 
     def update(self, *args, **kwargs):
         keys = pg.key.get_pressed()

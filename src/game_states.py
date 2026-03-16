@@ -105,7 +105,6 @@ class SettingsState(GameState):
             ("SHOOTING", "vol_shoot"),
             ("ZOMBIES", "vol_zombie"),
             ("PLAYER", "vol_player"),
-            ("NARRATE", "vol_narrate"),
             ("BACK", None)
         ]
         self.dragging = False
@@ -117,11 +116,11 @@ class SettingsState(GameState):
                     self.settings_index = (self.settings_index - 1) % len(self.options)
                 elif event.key == pg.K_DOWN:
                     self.settings_index = (self.settings_index + 1) % len(self.options)
-                elif event.key == pg.K_ESCAPE or (event.key == pg.K_RETURN and self.settings_index == 5):
+                elif event.key == pg.K_ESCAPE or (event.key == pg.K_RETURN and self.settings_index == 4):
                     self.game.change_state(self.previous_state)
                 
                 # Keyboard volume adjust
-                if self.settings_index < 5:
+                if self.settings_index < 4:
                     attr = self.options[self.settings_index][1]
                     if event.key == pg.K_LEFT:
                         setattr(self.game, attr, max(0.0, getattr(self.game, attr) - 0.05))
@@ -142,7 +141,7 @@ class SettingsState(GameState):
             box_rect = pg.Rect(0, 0, 550, 60)
             box_rect.center = (SCREEN_WIDTH//2, 180 + i * 75)
             if box_rect.collidepoint(pos):
-                if i == 5:
+                if i == 4:
                     self.game.change_state(self.previous_state)
                 else:
                     self.settings_index = i
@@ -160,7 +159,7 @@ class SettingsState(GameState):
                     self.settings_index = i
 
     def update_slider(self, pos):
-        if self.settings_index >= 5: return
+        if self.settings_index >= 4: return
         slider_start_x = SCREEN_WIDTH//2 - 50
         slider_width = 250
         val = (pos[0] - slider_start_x) / slider_width
@@ -172,7 +171,12 @@ class SettingsState(GameState):
     def draw(self, screen):
         screen.fill(BG_COLOR)
         if isinstance(self.previous_state, (PlayingState, PausedState)):
-             self.previous_state.draw_background(screen)
+             # เรียกใช้ draw_background ถ้ามี หรือเรียก draw ปกติถ้าไม่มี (แต่วาดผ่าน overlay)
+             if hasattr(self.previous_state, 'draw_background'):
+                 self.previous_state.draw_background(screen)
+             else:
+                 self.previous_state.draw(screen)
+                 
              overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
              overlay.fill((0, 0, 0, 150))
              screen.blit(overlay, (0, 0))
@@ -452,7 +456,6 @@ class PlayingState(GameState):
                 self.game.last_attacked = now
         
         if self.game.player.hp <= 0:
-            pg.mixer.stop() # Player death stops all sounds
             self.game.change_state(GameOverState(self.game))
             pg.mixer.music.stop()
 
@@ -499,9 +502,13 @@ class PausedState(GameState):
                 elif self.game.pause_settings_btn_rect.collidepoint(event.pos):
                     self.game.change_state(SettingsState(self.game, self))
 
+    def draw_background(self, screen):
+        # วาด sprites เหมือนเดิมแต่ใช้ชื่อให้ตรงกับที่ PlayingState ใช้
+        self.game.all_sprites.draw(screen)
+
     def draw(self, screen):
         # Draw game in background
-        self.game.all_sprites.draw(screen)
+        self.draw_background(screen)
         overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pg.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         screen.blit(overlay, (0, 0))

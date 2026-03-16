@@ -37,7 +37,6 @@ class Game:
         self.vol_shoot = SHOOT_VOLUME
         self.vol_zombie = ZOMBIE_VOLUME
         self.vol_player = PLAYER_VOLUME
-        self.vol_narrate = NARRATE_VOLUME
         
         # Strategy & Factory
         self.difficulty_map = {cls.__name__: cls for cls in wave_difficulty.WaveDifficulty.__subclasses__()}
@@ -144,7 +143,6 @@ class Game:
             if hasattr(sprite, 'sound') and sprite.sound:
                 if isinstance(sprite, player.Player):
                     for cat in ["damage", "death", "reload", "idle"]: sprite.sound.set_volume(cat, self.vol_player)
-                    sprite.sound.set_volume("narrate", self.vol_narrate)
                 elif isinstance(sprite, zombie.Zombie):
                     for cat in ["idle", "damage", "death"]: sprite.sound.set_volume(cat, self.vol_zombie)
             

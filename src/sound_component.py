@@ -12,7 +12,6 @@ class SoundComponent:
         self.sounds = {cat: [] for cat in categories}
         self.current_channel = None
         self.current_sound_type = ""
-        self.narrate_played = False
         self._load_sounds()
 
     def _load_sounds(self):
@@ -25,7 +24,7 @@ class SoundComponent:
                     if f.startswith(s_type):
                         try:
                             snd = pg.mixer.Sound(os.path.join(self.sound_folder, f))
-                            vol = NARRATE_VOLUME if s_type == "narrate" else self.default_volume
+                            vol = self.default_volume
                             snd.set_volume(vol)
                             self.sounds[s_type].append(snd)
                         except Exception as e:
@@ -41,26 +40,33 @@ class SoundComponent:
         return self.current_channel is not None and self.current_channel.get_busy()
 
     def play(self, sound_type):
-        if sound_type == "narrate":
-            if self.narrate_played:
-                return
-            self.narrate_played = True
-
-        if sound_type == "death":
-            if self.is_playing:
-                self.current_channel.stop()
-        elif sound_type in ["damage", "shoot"]:
-            if sound_type in self.sounds and self.sounds[sound_type]:
-                random.choice(self.sounds[sound_type]).play()
-            return
-        else:
-            if self.is_playing:
-                if self.current_sound_type == "narrate":
-                    return
-                if self.current_sound_type in ["idle", "reload"] and sound_type in ["idle", "reload"]:
-                    return
-                self.current_channel.stop()
+        priorities = {
+            "death": 3,
+            "damage": 2,
+            "reload": 1,
+            "idle": 1
+        }
         
+        current_priority = priorities.get(self.current_sound_type, -1)
+        new_priority = priorities.get(sound_type, 0)
+
+        # 1. ถ้าเสียงใหม่ความสำคัญต่ำกว่าเสียงที่เล่นอยู่ -> ไม่เล่น
+        if self.is_playing and new_priority < current_priority:
+            return
+        
+        # 2. กรณีลำดับความสำคัญเท่ากัน (เช่น idle กับ reload)
+        if self.is_playing and new_priority == current_priority:
+            # ถ้าเป็นกลุ่มเสียงทั่วไป (priority 1 เช่น idle/reload) ห้ามขัดจังหวะกันเอง
+            if new_priority <= 1:
+                return
+            # ถ้าเป็นกลุ่มเสียงสำคัญมาก ให้ขัดจังหวะได้ (หรือตามตรรกะเดิมคือหยุดตัวเก่าเล่นตัวใหม่)
+            self.current_channel.stop()
+
+        # 3. ถ้าเสียงใหม่สำคัญกว่าเสียงเดิมที่กำลังเล่นอยู่ -> หยุดตัวเดิมแล้วเล่นตัวใหม่
+        if self.is_playing and new_priority > current_priority:
+            self.current_channel.stop()
+
+        # 3. เริ่มเล่นเสียงใหม่
         if sound_type in self.sounds and self.sounds[sound_type]:
             ch = random.choice(self.sounds[sound_type]).play()
             if ch:
