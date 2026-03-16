@@ -2,12 +2,12 @@ import pygame as pg
 import random
 from base_entity import BaseEntity
 from settings import *
-from weapons import Glock, M16
+from weapons import Pistol, Rifle
 from utils import get_random_image
 from sound_component import SoundComponent
 
 class Player(BaseEntity):
-    def __init__(self, x, y, hp, speed, image_folder, sound_folder, weapon_class=Glock):
+    def __init__(self, x, y, hp, speed, image_folder, sound_folder, weapon_class=Pistol):
         img = get_random_image(image_folder)
         super().__init__(x, y, hp, speed, img, size=(50, 50))
         
@@ -61,23 +61,23 @@ class Player(BaseEntity):
 class Soldier(Player):
     BASE_PATH = "assets/character/player/Soldier"
     def __init__(self, x, y):
-        super().__init__(x, y, 120, 5, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=M16)
+        super().__init__(x, y, 120, 5, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=Rifle)
         self.char_name = "Soldier"
 
 class Scout(Player):
     BASE_PATH = "assets/character/player/Scout"
     def __init__(self, x, y):
-        super().__init__(x, y, 80, 7, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=M16)
+        super().__init__(x, y, 80, 7, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=Rifle)
         self.char_name = "Scout"
 
 class Defender(Player):
     BASE_PATH = "assets/character/player/Defender"
     def __init__(self, x, y):
-        super().__init__(x, y, 200, 3.5, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=M16)
+        super().__init__(x, y, 200, 3.5, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=Rifle)
         self.char_name = "Defender"
 
 class Naoya(Player):
     BASE_PATH = "assets/character/player/Naoya"
     def __init__(self, x, y):
-        super().__init__(x, y, 50, 50, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=M16)
+        super().__init__(x, y, 50, 50, f"{self.BASE_PATH}/image", f"{self.BASE_PATH}/sound", weapon_class=Rifle)
         self.char_name = "Naoya"

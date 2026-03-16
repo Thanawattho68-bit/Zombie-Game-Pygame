@@ -1,24 +1,24 @@
 from base_weapon import BaseWeapon
-from base_bullet import NineMM, FiveFiveSix
+from base_bullet import PistolBullet, RifleBullet
 
-class Glock(BaseWeapon):
+class Pistol(BaseWeapon):
     def __init__(self, x, y):
         super().__init__(
             x, y, 
-            "assets/weapon/glock/image/glock.png",
-            NineMM,
+            "assets/weapon/pistol/image/pistol.png",
+            PistolBullet,
             15,
             1,
             0.175,
             size=(30, 15)
         )
 
-class M16(BaseWeapon):
+class Rifle(BaseWeapon):
     def __init__(self, x, y):
         super().__init__(
             x, y, 
-            "assets/weapon/m16/image/m16.png", 
-            FiveFiveSix, 
+            "assets/weapon/rifle/image/rifle.png", 
+            RifleBullet, 
             50,
             2,
             0.087,

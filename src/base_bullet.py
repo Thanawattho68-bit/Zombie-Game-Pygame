@@ -32,10 +32,10 @@ class Bullet(ABC, pg.sprite.Sprite):
         target.take_damage(self.damage)
         self.kill()
 
-class NineMM(Bullet):
+class PistolBullet(Bullet):
     def __init__(self, x, y, direction):
-        super().__init__(x, y, direction, 20, 35, "assets/weapon/glock/image/nine_mm.png")
+        super().__init__(x, y, direction, 20, 35, "assets/weapon/pistol/image/pistol_bullet.png")
 
-class FiveFiveSix(Bullet):
+class RifleBullet(Bullet):
     def __init__(self, x, y, direction):
-        super().__init__(x, y, direction, 60, 45, "assets/weapon/m16/image/five_five_six.png")
+        super().__init__(x, y, direction, 60, 45, "assets/weapon/rifle/image/rifle_bullet.png")
