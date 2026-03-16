@@ -3,17 +3,13 @@ import math
 import random
 import os
 from settings import *
+from utils import load_image
 
 class BaseWeapon(pg.sprite.Sprite):
     def __init__(self, x, y, weapon_image_path, bullet_class, magazine_size, reload_time, fire_rate, size=(40, 15)):
         super().__init__()
-        try:
-            self.original_image = pg.image.load(weapon_image_path).convert_alpha()
-            self.original_image = pg.transform.scale(self.original_image, size)
-        except Exception as e:
-            print(f"Warning: Could not load weapon image '{weapon_image_path}' - {e}")
-            self.original_image = pg.Surface(size)
-            self.original_image.fill(DARK_GRAY)
+        # ใช้ utility ในการโหลดรูปภาพ (DRY)
+        self.original_image = load_image(weapon_image_path, size, fallback_color=DARK_GRAY)
         
         self.image = self.original_image.copy()
         self.rect = self.image.get_rect(center=(x, y))

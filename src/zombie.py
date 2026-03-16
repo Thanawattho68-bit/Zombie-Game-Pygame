@@ -3,7 +3,7 @@ import random
 from base_entity import CombatEntity
 from settings import *
 from wave_difficulty import WaveDifficulty
-from utils import get_random_image
+from utils import get_random_image, get_direction_vector
 from sound_component import SoundComponent
 
 class Zombie(CombatEntity):
@@ -23,13 +23,10 @@ class Zombie(CombatEntity):
     def update(self, *args, **kwargs):
         player_pos = kwargs.get('player_pos')
         if player_pos:
-            target_vector = pg.math.Vector2(player_pos)
-            current_vector = pg.math.Vector2(self.pos)
-            direction = target_vector - current_vector
+            direction = get_direction_vector(self.pos, player_pos)
             if direction.length() > 0:
-                direction = direction.normalize() * self.speed
-                self.pos += direction
-                self.rect.center = (self.pos.x, self.pos.y)
+                self.pos += direction * self.speed
+                self.rect.center = (int(self.pos.x), int(self.pos.y))
 
         self.handle_idle_sounds()
 

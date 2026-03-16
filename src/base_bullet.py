@@ -2,19 +2,14 @@ import pygame as pg
 import math
 from abc import ABC, abstractmethod
 from settings import *
+from utils import load_image
 
 #composition ให้ weapon เก็บ bullet
 class Bullet(ABC, pg.sprite.Sprite):
     def __init__(self, x, y, direction, speed, damage, image_path):
         super().__init__()
-        try:
-            self.image = pg.image.load(image_path).convert_alpha()
-            # ปรับขนาดกระสุนให้สมส่วนขึ้น (เช่น ยาว 15 กว้าง 5 หรือตามต้องการ)
-            self.image = pg.transform.scale(self.image, (20, 20))
-        except Exception as e:
-            print(f"Warning: Could not load bullet image '{image_path}' - {e}")
-            self.image = pg.Surface((10,5))
-            self.image.fill(RED)
+        # ใช้ utility ในการโหลดรูปภาพ (DRY)
+        self.image = load_image(image_path, (20, 20), fallback_color=RED)
             
         # หมุนภาพให้หันไปตามทิศทาง (direction)
         # เนื่องจาก Pygame rotate หมุนทวนเข็มนาฬิกา และแกน Y เป็นบวกเมื่อลงล่าง
