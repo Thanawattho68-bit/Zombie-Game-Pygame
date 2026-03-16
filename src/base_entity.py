@@ -1,4 +1,5 @@
 import pygame as pg
+import random
 from abc import abstractmethod, ABC
 from settings import *
 from sound_component import SoundComponent
