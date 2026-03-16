@@ -18,6 +18,11 @@ class BaseEntity(ABC, pg.sprite.Sprite):
     def update(self, *args, **kwargs):
         pass
 
+    @abstractmethod
+    def attack(self, target=None):
+        """กำหนดให้ Entity ทุกตัวในเกมต้องมีเมธอดโจมตี"""
+        pass
+
     def take_damage(self, damage):
         self.hp -= damage
         if self.sound:
@@ -29,9 +34,3 @@ class BaseEntity(ABC, pg.sprite.Sprite):
             self.kill()
             return True
         return False
-
-class CombatEntity(BaseEntity):
-    """Subclass สำหรับ Entity ที่สามารถโจมตีได้ (ISP)"""
-    @abstractmethod
-    def attack(self, target=None):
-        pass

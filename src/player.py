@@ -1,12 +1,12 @@
 import pygame as pg
 import random
-from base_entity import CombatEntity
+from base_entity import BaseEntity
 from settings import *
 from weapons import Glock, M16
 from utils import get_random_image
 from sound_component import SoundComponent
 
-class Player(CombatEntity):
+class Player(BaseEntity):
     def __init__(self, x, y, hp, speed, image_folder, sound_folder, weapon_class=Glock):
         img = get_random_image(image_folder)
         super().__init__(x, y, hp, speed, img, size=(50, 50))

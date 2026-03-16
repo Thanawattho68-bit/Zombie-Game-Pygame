@@ -1,12 +1,12 @@
 import pygame as pg
 import random
-from base_entity import CombatEntity
+from base_entity import BaseEntity
 from settings import *
 from wave_difficulty import WaveDifficulty
 from utils import get_random_image, get_direction_vector
 from sound_component import SoundComponent
 
-class Zombie(CombatEntity):
+class Zombie(BaseEntity):
     def __init__(self, x, y, hp, speed, entity_img, attack_damage, sound_folder, size=(35, 35)):
         super().__init__(x, y, hp, speed, entity_img, size=size)
         self.attack_damage = attack_damage
