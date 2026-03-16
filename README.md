@@ -1,46 +1,55 @@
-# 🧟‍♂️ Zombie Survival: 2D Top-Down Shooter (Pygame)
+# 🧟‍♂️ Zombie Game NAJA (Pygame)
 
-เกมยิงซอมบี้มุมมองด้านบน (Top-down view) ที่พัฒนาด้วยภาษา Python และไลบรารี Pygame
+เกมยิงซอมบี้มุมมองด้านบน (Top-down view) ที่เน้นความสวยงามสไตล์ Modern Neon และระบบการเล่นที่ยืดหยุ่น พัฒนาด้วยภาษา Python และไลบรารี Pygame
 
 ---
 
-## 🌟 ฟีเจอร์ที่น่าสนใจ (Key Features)
+## 🌟 ฟีเจอร์หลัก (Key Features)
 
-### 🎮 ระบบการเล่น (Gameplay Structure)
+### 🎮 ระบบการเล่นและดีไซน์ (Advanced Gameplay & Design)
 
-- **ระบบ Wave & Spawning**: ซอมบี้จะเกิดเป็นเวฟ โดยใช้ระบบ **Queue และ Random Delay** เพื่อให้จังหวะการเกิดไม่ซ้ำซากและดูเป็นธรรมชาติ
-- **โหมดเกม (Game Modes)**: เลือกเล่นได้ทั้งโหมด **Story** (เพิ่มระดับความยากตามเวฟ) และโหมด **Endless** (ท้าทายความอึด) ผ่านระบบ _Strategy Pattern_
-- **การเลือกตัวละคร & อาวุธ**: ก่อนเริ่มแมตช์ ผู้เล่นสามารถเลือกตัวละครที่มี Status ต่างกัน (Soldier, Scout, Defender, Naoya) พร้อมติดตั้งอาวุธที่ชอบได้
+- **ระบบ Wave & Spawning**: ซอมบี้จะเกิดเป็นเวฟโดยใช้ระบบ **Queue และ Random Delay** เพื่อให้จังหวะการเกิดดูเป็นธรรมชาติ ไม่ซ้ำซาก
+- **โหมดเกม (Game Modes)**: รองรับทั้งโหมด **Story** (ไต่ระดับความยาก) และโหมด **Endless** (ท้าทายขีดจำกัด) ผ่านการใช้ _Strategy Pattern_
+- **Premium UI/UX**:
+  - ดีไซน์สไตล์ **Neon Glow** พร้อมเอฟเฟกต์ **Pulse** ในหน้าเมนู
+  - ระบบ **Glassmorphism Overlay** (เบลอพื้นหลัง) เมื่อกดหยุดเกมหรือเข้าหน้าตั้งค่า
+  - **Responsive HUD**: แสดงสถานะ HP, กระสุน, คะแนน และ Wave อย่างชัดเจน
+- **การเลือกตัวละครและอาวุธ**: ระบบ Preview ตัวละครแบบเรียลไทม์ และสามารถเลือกติดตั้งอาวุธได้ถึง **2 ชนิด** เพื่อสลับใช้ระหว่างการต่อสู้
 
-### 🔊 ระบบเสียงอัจฉริยะ (Advanced Sound Priority)
+### 🔊 ระบบเสียงและตั้งค่า (Dynamic Audio System)
 
-เราพัฒนาระบบการลำดับความสำคัญของเสียง (Sound Channels Management) เพื่อประสบการณ์ที่สมจริง:
-
-- **Narrate (เสียงเล่าเรื่อง)**: บทพูดอธิบายที่จะสุ่มเล่นเพียงครั้งเดียวในแมตช์ โดยไม่มีเสียงใดๆ มาขัดจังหวะได้ (ยกเว้นความตาย)
-- **World Death Stop**: เมื่อผู้เล่นตาย เสียงทั้งโลกจะหยุดนิ่ง (Global Stop) เพื่อสร้างจังหวะความสลดก่อนเข้าหน้าจอกรรมการ
-- **Selective Overlapping**: เสียง **ยิง (Shoot)** และ **บาดเจ็บ (Damage)** สามารถเล่นทับซ้อนกันได้แบบนัวสะใจ แต่เสียง **Idle** และ **Reload** จะสลับกันเล่นอย่างเป็นระเบียบ (Mutually Exclusive)
+- **Advanced Volume Control**: ระบบตั้งค่าเสียงผ่าน **Sliders** ที่ปรับแยกได้อิสระ (BGM, Shooting, Zombies, Player) ทั้งจากเมาส์และคีย์บอร์ด
+- **Sound Priority Management**:
+  - **Selective Overlapping**: เสียงยิงและเสียงบาดเจ็บสามารถเล่นซ้อนกันได้เพื่อความมันสะใจ
+  - **Mutually Exclusive**: เสียง Reload และ Idle จะถูกจัดการไม่ให้เล่นทับกันจนน่ารำคาญ
+  - **Global Stop**: เมื่อเกมจบ เสียงทุกอย่างจะค่อยๆ เงียบลงเพื่อสร้างบรรยากาศ
 
 ---
 
 ## ⌨️ การควบคุม (Controls)
 
-| การกระทำ            | ปุ่มควบคุม                                           |
-| :------------------ | :--------------------------------------------------- |
-| **เดิน (Walk)**     | `W` `A` `S` `D`                                      |
-| **เล็ง (Aim)**      | เลื่อนเมาส์ (Mouse Movement)                         |
-| **ยิง (Shoot)**     | คลิกเมาส์ซ้าย (Left Click) หรือ สเปซบาร์ (Space Bar) |
-| **รีโหลด (Reload)** | กดปุ่ม `R`                                           |
-| **หยุดเกม (Pause)** | กดปุ่ม `ESC`                                         |
+| การกระทำ                      | ปุ่มควบคุม                              |
+| :---------------------------- | :-------------------------------------- |
+| **เดิน (Walk)**               | `W` `A` `S` `D`                         |
+| **เล็ง (Aim)**                | เลื่อนเมาส์ (Mouse Movement)            |
+| **ยิง (Shoot)**               | คลิกเมาส์ซ้าย (Left Click) หรือ `SPACE` |
+| **รีโหลด (Reload)**           | กดปุ่ม `R`                              |
+| **สลับอาวุธ (Switch Weapon)** | กดปุ่ม `1` หรือ `2`                     |
+| **หยุดเกม / ตั้งค่า (Pause)** | กดปุ่ม `ESC`                            |
 
 ---
 
 ## 🏗️ โครงสร้างโปรเจกต์ (System Architecture)
 
-- **`src/main.py`**: ศูนย์กลางการทำงาน (Game Loop, State Machine) และการบริหารจัดการหน้าจอ
-- **`src/base_entity.py`**: คลาสแม่สำหรับตัวละครทุกตัว จัดการเรื่อง Logic พื้นฐาน การเคลื่อนที่ และระบบเสียง
-- **`src/player.py` / `src/zombie.py`**: แบ่งประเภทตัวละครผู้เล่นและซอมบี้ (Normal, Fast, Tank)
-- **`src/base_weapon.py`**: ระบบอาวุธที่ทำงานแบบ Composition ร่วมกับกระสุน (`src/base_bullet.py`)
-- **`src/settings.py`**: รวบรวมค่าคงที่ สีสัน และการตั้งค่าปุ่มกดทั้งหมดไว้ในที่เดียว
+- **`src/main.py`**: ศูนย์กลางของเกม (Game Loop) การจัดการ State หลัก และการเชื่อมต่อทุกระบบเข้าด้วยกัน
+- **`src/game_states.py`**: จัดการ Logic ของแต่ละหน้าจอ (MainMenu, Playing, Settings, etc.) และการเปลี่ยน Scene
+- **`src/settings.py`**: ศูนย์รวมค่าคงที่ (Constants) การตั้งค่าปุ่ม และสมดุลของเกม
+- **`src/base_entity.py`**: คลาสแม่ (Abstract Class) ของตัวละครที่จัดการเรื่อง Sprite, Physics เบื้องต้น และ Health System
+- **`src/player.py` & `src/zombie.py`**: ระบบตัวละครผู้เล่นและซอมบี้ (Normal, Fast, Tank) ที่สืบทอดมาจาก BaseEntity
+- **`src/base_weapon.py` & `src/base_bullet.py`**: ระบบ Modular Weaponry ที่ใช้การ Composition ในการสร้างอาวุธ
+- **`src/ui_manager.py`**: ระบบ UI Engine สำหรับวาดปุ่ม, สไลเดอร์ และ HUD แบบ Modern Interface
+- **`src/sound_component.py`**: ระบบจัดการเสียงแยกตามหมวดหมู่ (Audio System) เพื่อบรรยากาศที่สมจริง
+- **`src/wave_difficulty.py`**: ตรรกะการเพิ่มระดับความยากและการกระจายตัวของซอมบี้ (Spawning Logic)
 
 ---
 
@@ -65,34 +74,26 @@
    ```
 
 3. **รันเกม:**
-   ```bash
-   python src/main.py
-   ```
+
+- **Windows:**
+  ```bash
+  python src/main.py
+  ```
+- **macOS/Linux:**
+  ```bash
+  python3 src/main.py
+  ```
 
 ---
 
-## 👥 การแบ่งงาน (Task Distribution)
+## 👥 สมาชิกผู้พัฒนา (The Team)
 
-โปรเจกต์นี้จัดทำโดยสมาชิก 2 คน โดยแบ่งความรับผิดชอบตามโมดูลดังนี้:
+โปรเจกต์นี้ได้รับการพัฒนาโดยแบ่งความรับผิดชอบตามความเชี่ยวชาญ:
 
-1. **นาย ธนวรรธ​ ทองตื้อ**: ดูแลระบบฟิสิกส์ การเคลื่อนที่ ระบบอาวุธ และการออกแบบตัวละคร
-   - **ไฟล์หลักที่รับผิดชอบ:**
-     - `src/base_entity.py` (ระบบฟิสิกส์และการเคลื่อนที่พื้นฐาน)
-     - `src/player.py` (สถานะและตรรกะตัวละครผู้เล่น)
-     - `src/base_weapon.py` (ระบบการทำงานของปืน)
-     - `src/weapons.py` (ข้อมูลอาวุธชนิดต่างๆ)
-     - `src/base_bullet.py` (ระบบกระสุน)
-     - `src/utils.py` (ฟังก์ชันช่วยเหลือทั่วไป)
-
-2. **นาย รัชชานนท์ อรรถพันธ์**: ดูแลระบบ Wave, State Machine, ระบบเสียง และ UI/UX
-   - **ไฟล์หลักที่รับผิดชอบ:**
-     - `src/main.py` (Game Loop และการประสานงานหลัก)
-     - `src/game_states.py` (การจัดการสถานะหน้าจอทั้งหมด)
-     - `src/ui_manager.py` (การวาด UI และ Button)
-     - `src/sound_component.py` (ระบบเสียงอัจฉริยะ)
-     - `src/zombie.py` (การจัดการซอมบี้และระบบ Factory)
-     - `src/wave_difficulty.py` (ตรรกะความยากและ Wave)
-     - `src/settings.py` (การตั้งค่าระบบและปุ่มกด)
+1. **นาย ธนวรรธ​ ทองตื้อ**: ผู้ออกแบบ Core Mechanics และระบบฟิสิกส์
+   - รับผิดชอบ: `base_entity.py`, `player.py`, `base_weapon.py`, `weapons.py`, `base_bullet.py`, `utils.py`
+2. **นาย รัชชานนท์ อรรถพันธ์**: ผู้ออกแบบ UI/UX และระบบ State Machine
+   - รับผิดชอบ: `main.py`, `game_states.py`, `settings.py`, `ui_manager.py`, `sound_component.py`, `zombie.py`, `wave_difficulty.py`
 
 ---
 
