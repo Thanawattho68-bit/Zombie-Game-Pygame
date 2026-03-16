@@ -1,35 +1,41 @@
 import pygame as pg
 import random
-import os
-from base_entity import BaseEntity
+from base_entity import CombatEntity
 from settings import *
-from base_weapon import Glock, M16
+from weapons import Glock, M16
 from utils import get_random_image
+from sound_component import SoundComponent
 
-class Player(BaseEntity):
+class Player(CombatEntity):
     def __init__(self, x, y, hp, speed, image_folder, sound_folder, weapon_class=Glock):
-        # สุ่มรูปภาพจากโฟลเดอร์เฉพาะของคลาสนั้นๆ
         img = get_random_image(image_folder)
-        
-        # ให้ตัวละคร Player ใหญ่เป็นพิเศษ เช่น 50x50
-        # ถ้า img เป็น None คลาส BaseEntity จะจัดการสร้าง Surface สีพื้นให้เองใน try-except
         super().__init__(x, y, hp, speed, img, size=(50, 50))
         
         self.weapon = weapon_class(x, y) 
-        self._load_sounds(sound_folder, PLAYER_VOLUME, ["damage", "death", "reload", "idle", "narrate"])
+        self.sound = SoundComponent(self, sound_folder, PLAYER_VOLUME, ["damage", "death", "reload", "idle", "narrate"])
+        self.next_idle_sound_time = 0
+        self.next_narrate_time = 0
 
     def spawn(self):
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
-    def play_sound(self, sound_type):
-        if sound_type == "death":
-            # ถ้าเป็น Player ตาย ให้หยุดเสียงทุกอย่างในเกมทันที (World Stop)
-            pg.mixer.stop()
-        super().play_sound(sound_type)
-
     def reload_weapon(self):
         if self.weapon.reload():
-            self.play_sound("reload")
+            self.sound.play("reload")
+
+    def handle_idle_sounds(self):
+        now = pg.time.get_ticks()
+        # Idle
+        if self.next_idle_sound_time == 0 or now >= self.next_idle_sound_time:
+             self.sound.play("idle")
+             self.next_idle_sound_time = now + random.randint(10000, 20000)
+        
+        # Narrate
+        if not self.sound.narrate_played:
+            if self.next_narrate_time == 0:
+                self.next_narrate_time = now + random.randint(10000, 60000)
+            if now >= self.next_narrate_time:
+                self.sound.play("narrate")
 
     def update(self, *args, **kwargs):
         keys = pg.key.get_pressed()
@@ -40,7 +46,6 @@ class Player(BaseEntity):
         if keys[WALK_UP]: direction.y -= 1
         if keys[WALK_DOWN]: direction.y += 1
 
-        # ป้องกันการเดินเฉียงแล้วเร็วเกินไป (Normalize)
         if direction.length() > 0:
             direction = direction.normalize() * self.speed
             self.rect.centerx += int(direction.x)
@@ -48,11 +53,7 @@ class Player(BaseEntity):
 
         self.rect.clamp_ip(pg.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
         self.weapon.update(self.rect.center)
-
-        # จัดการเสียง Idle (Player พูด) โดยใช้เบสเอนทิตี้
-        self.handle_idle_sound(10000, 20000)
-        # จัดการเสียง Narrate (สุ่มพูดภายใน 10-60 วินาทีแรกของแมตช์)
-        self.handle_narrate_sound(10000, 60000)
+        self.handle_idle_sounds()
 
     def attack(self, target=None):
         return self.weapon.pull_trigger()
