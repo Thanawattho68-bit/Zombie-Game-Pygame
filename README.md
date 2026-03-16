@@ -11,8 +11,7 @@
 - **ระบบ Wave & Spawning**: ซอมบี้จะเกิดเป็นเวฟโดยใช้ระบบ **Queue และ Random Delay** เพื่อให้จังหวะการเกิดดูเป็นธรรมชาติ ไม่ซ้ำซาก
 - **โหมดเกม (Game Modes)**: รองรับทั้งโหมด **Story** (ไต่ระดับความยาก) และโหมด **Endless** (ท้าทายขีดจำกัด) ผ่านการใช้ _Strategy Pattern_
 - **Premium UI/UX**:
-  - ดีไซน์สไตล์ **Neon Glow** พร้อมเอฟเฟกต์ **Pulse** ในหน้าเมนู
-  - ระบบ **Glassmorphism Overlay** (เบลอพื้นหลัง) เมื่อกดหยุดเกมหรือเข้าหน้าตั้งค่า
+  - ดีไซน์สไตล์ **Neon Green** ในหน้าเมนู
   - **Responsive HUD**: แสดงสถานะ HP, กระสุน, คะแนน และ Wave อย่างชัดเจน
 - **การเลือกตัวละครและอาวุธ**: ระบบ Preview ตัวละครแบบเรียลไทม์ และสามารถเลือกติดตั้งอาวุธได้ถึง **2 ชนิด** เพื่อสลับใช้ระหว่างการต่อสู้
 
@@ -56,16 +55,16 @@
 ## 🚀 วิธีเริ่มใช้งาน
 
 1. **เตรียมสภาพแวดล้อม (Virtual Environment):**
-   - **Windows:**
-     ```bash
-     python -m venv .venv
-     .venv\Scripts\activate
-     ```
-   - **macOS/Linux:**
-     ```bash
-     python3 -m venv .venv
-     source .venv/bin/activate
-     ```
+ - **Windows:**
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate
+   ```
+ - **macOS/Linux:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
 
 2. **ติดตั้งไลบรารีที่จำเป็น:**
 
@@ -86,11 +85,12 @@
 
 ---
 
+## ชื่อทีม WORK LIFE NO BALANCE
 ## 👥 สมาชิกผู้พัฒนา (The Team)
 
-โปรเจกต์นี้ได้รับการพัฒนาโดยแบ่งความรับผิดชอบตามความเชี่ยวชาญ:
+ความรับผิดชอบ:
 
-1. **นาย ธนวรรธ​ ทองตื้อ**: ผู้ออกแบบ Core Mechanics และระบบฟิสิกส์
+1. **นาย ธนวรรธ​ ทองตื้อ**: ผู้ออกแบบ Core Mechanics และระบบการขยับ
    - รับผิดชอบ: `base_entity.py`, `player.py`, `base_weapon.py`, `weapons.py`, `base_bullet.py`, `utils.py`
 2. **นาย รัชชานนท์ อรรถพันธ์**: ผู้ออกแบบ UI/UX และระบบ State Machine
    - รับผิดชอบ: `main.py`, `game_states.py`, `settings.py`, `ui_manager.py`, `sound_component.py`, `zombie.py`, `wave_difficulty.py`
