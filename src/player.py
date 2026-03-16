@@ -13,8 +13,6 @@ class Player(BaseEntity):
         
         self.weapon = weapon_class(x, y) 
         self.sound = SoundComponent(self, sound_folder, PLAYER_VOLUME, ["damage", "death", "reload", "idle"])
-        # สุ่มเวลาที่จะพูดครั้งแรก เพื่อไม่ให้พูดทันทีที่เริ่มเกม
-        self.next_idle_sound_time = pg.time.get_ticks() + random.randint(5000, 15000)
 
     def spawn(self):
         self.rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
@@ -38,12 +36,6 @@ class Player(BaseEntity):
             return True
         return False
 
-    def handle_idle_sounds(self):
-        now = pg.time.get_ticks()
-        # Idle
-        if now >= self.next_idle_sound_time:
-             self.sound.play("idle")
-             self.next_idle_sound_time = now + random.randint(10000, 20000)
 
     def update(self, *args, **kwargs):
         keys = pg.key.get_pressed()
@@ -61,7 +53,7 @@ class Player(BaseEntity):
 
         self.rect.clamp_ip(pg.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
         self.weapon.update(self.rect.center)
-        self.handle_idle_sounds()
+        super().handle_idle_sounds(10000, 20000)
 
     def attack(self, target=None):
         return self.weapon.pull_trigger()

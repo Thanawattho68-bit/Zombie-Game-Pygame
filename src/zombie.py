@@ -12,13 +12,7 @@ class Zombie(BaseEntity):
         self.attack_damage = attack_damage
         self.pos = pg.math.Vector2(x, y)
         self.sound = SoundComponent(self, sound_folder, ZOMBIE_VOLUME, ["idle", "death", "damage"])
-        self.next_idle_sound_time = 0
 
-    def handle_idle_sounds(self):
-        now = pg.time.get_ticks()
-        if self.next_idle_sound_time == 0 or now >= self.next_idle_sound_time:
-             self.sound.play("idle")
-             self.next_idle_sound_time = now + random.randint(3000, 10000)
 
     def update(self, *args, **kwargs):
         player_pos = kwargs.get('player_pos')
@@ -28,7 +22,7 @@ class Zombie(BaseEntity):
                 self.pos += direction * self.speed
                 self.rect.center = (int(self.pos.x), int(self.pos.y))
 
-        self.handle_idle_sounds()
+        super().handle_idle_sounds(3000, 10000)
 
     def attack(self, target=None):
         if target and self.rect.colliderect(target.rect):
